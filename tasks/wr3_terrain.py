@@ -278,7 +278,7 @@ class Wr3Terrain(VecTask):
             for s in range(len(rigid_shape_prop)):
                 rigid_shape_prop[s].friction = friction_buckets[i % num_buckets]
             self.gym.set_asset_rigid_shape_properties(anymal_asset, rigid_shape_prop)
-            anymal_handle = self.gym.create_actor(env_handle, anymal_asset, start_pose, "anymal", i, 0, 0)
+            anymal_handle = self.gym.create_actor(env_handle, anymal_asset, start_pose, "wr3", i, 0, 0)
             self.gym.set_actor_dof_properties(env_handle, anymal_handle, dof_props)
             self.envs.append(env_handle)
             self.anymal_handles.append(anymal_handle)
@@ -290,7 +290,7 @@ class Wr3Terrain(VecTask):
             self.knee_indices[i] = self.gym.find_actor_rigid_body_handle(self.envs[0], self.anymal_handles[0],
                                                                          knee_names[i])
 
-        self.base_index = self.gym.find_actor_rigid_body_handle(self.envs[0], self.anymal_handles[0], "base")
+        self.base_index = self.gym.find_actor_rigid_body_handle(self.envs[0], self.anymal_handles[0], "trunk_link")
 
     def check_termination(self):
         self.reset_buf = torch.norm(self.contact_forces[:, self.base_index, :], dim=1) > 1.
