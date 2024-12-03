@@ -77,6 +77,7 @@ env:
     angularVelocityZRewardScale: 0.5
     torqueRewardScale: -0.000025
 
+    # TODO: may be need to be tuned
     # normalization
     linearVelocityScale: 2.0
     angularVelocityScale: 0.25
