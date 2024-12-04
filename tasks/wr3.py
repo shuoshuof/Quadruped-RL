@@ -68,6 +68,19 @@ class Wr3(VecTask):
         self.cfg["env"]["numObservations"] = 48
         self.cfg["env"]["numActions"] = 12
 
+        self.lower_limits = torch.tensor([
+            -0.698, -0.663, -2.71,
+            -0.698, -0.663, -2.71,
+            -0.698, -0.663, -2.71,
+            -0.698, -0.663, -2.71,
+        ]).to('cuda:0') + 0.1
+        self.upper_limits = torch.tensor([
+            0.698, 2.79, -0.89,
+            0.698, 2.79, -0.89,
+            0.698, 2.79, -0.89,
+            0.698, 2.79, -0.89,
+        ]).to('cuda:0') -0.1
+
         super().__init__(config=self.cfg, rl_device=rl_device, sim_device=sim_device,
                          graphics_device_id=graphics_device_id, headless=headless,
                          virtual_screen_capture=virtual_screen_capture, force_render=force_render)
@@ -151,13 +164,14 @@ class Wr3(VecTask):
 
     def _create_envs(self, num_envs, spacing, num_per_row):
         asset_root = 'assets'
-        asset_file = "wr3/wr3.urdf"
+        # asset_file = "wr3/wr3.urdf"
+        asset_file = 'wr3/wr3_no_toe_nocol.xml'
 
         asset_options = gymapi.AssetOptions()
         asset_options.default_dof_drive_mode = gymapi.DOF_MODE_NONE
         asset_options.collapse_fixed_joints = True
         asset_options.replace_cylinder_with_capsule = True
-        asset_options.flip_visual_attachments = False
+        asset_options.flip_visual_attachments = False if os.path.basename(asset_file).split('.')[-1]=='urdf' else True
         asset_options.fix_base_link = self.cfg["env"]["urdfAsset"]["fixBaseLink"]
         asset_options.density = 0.001
         asset_options.angular_damping = 0.0
@@ -214,6 +228,7 @@ class Wr3(VecTask):
     def pre_physics_step(self, actions):
         self.actions = actions.clone().to(self.device)
         targets = self.action_scale * self.actions + self.default_dof_pos
+        # targets = torch.clamp(targets, min=self.lower_limits, max=self.upper_limits)
         self.gym.set_dof_position_target_tensor(self.sim, gymtorch.unwrap_tensor(targets))
 
     def post_physics_step(self):
@@ -262,16 +277,22 @@ class Wr3(VecTask):
             self.dof_pos_scale,
             self.dof_vel_scale
         )
+        i=0
+        self.last_state = self.root_states.clone()
 
     def reset_idx(self, env_ids):
         # Randomization can happen only at reset time, since it can reset actor positions on GPU
         if self.randomize:
             self.apply_randomizations(self.randomization_params)
-
+        # TODO: reset need to be clipped?
         positions_offset = torch_rand_float(0.5, 1.5, (len(env_ids), self.num_dof), device=self.device)
         velocities = torch_rand_float(-0.1, 0.1, (len(env_ids), self.num_dof), device=self.device)
+        # positions_offset = torch.ones(len(env_ids), self.num_dof, dtype=torch.float32,device=self.device)
+        # velocities = torch.zeros(len(env_ids), self.num_dof, dtype=torch.float32, device=self.device)
 
         self.dof_pos[env_ids] = self.default_dof_pos[env_ids] * positions_offset
+        # self.dof_pos[env_ids] = self.default_dof_pos[env_ids]
+        # self.dof_pos[env_ids] = torch.clamp(self.default_dof_pos[env_ids] * positions_offset, min=self.lower_limits, max=self.upper_limits)
         self.dof_vel[env_ids] = velocities
 
         env_ids_int32 = env_ids.to(dtype=torch.int32)
@@ -366,7 +387,7 @@ def compute_anymal_observations(root_states,
 
     commands_scaled = commands * torch.tensor([lin_vel_scale, lin_vel_scale, ang_vel_scale], requires_grad=False,
                                               device=commands.device)
-
+    # 3+3+3 +3 12+12+12
     obs = torch.cat((base_lin_vel,
                      base_ang_vel,
                      projected_gravity,

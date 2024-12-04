@@ -215,7 +215,7 @@ class Wr3Terrain(VecTask):
         asset_options.default_dof_drive_mode = gymapi.DOF_MODE_EFFORT
         asset_options.collapse_fixed_joints = True
         asset_options.replace_cylinder_with_capsule = True
-        asset_options.flip_visual_attachments = False
+        asset_options.flip_visual_attachments = False if os.path.basename(asset_file).split('.')[-1]=='urdf' else True
         asset_options.fix_base_link = self.cfg["env"]["urdfAsset"]["fixBaseLink"]
         asset_options.density = 0.001
         asset_options.angular_damping = 0.0
@@ -390,6 +390,7 @@ class Wr3Terrain(VecTask):
         self.episode_sums["hip"] += rew_hip
 
     def reset_idx(self, env_ids):
+        # TODO: reset need to be clipped?
         positions_offset = torch_rand_float(0.5, 1.5, (len(env_ids), self.num_dof), device=self.device)
         velocities = torch_rand_float(-0.1, 0.1, (len(env_ids), self.num_dof), device=self.device)
 
@@ -453,6 +454,7 @@ class Wr3Terrain(VecTask):
         self.gym.set_actor_root_state_tensor(self.sim, gymtorch.unwrap_tensor(self.root_states))
 
     def pre_physics_step(self, actions):
+        # TODO: actions should be clipped?
         self.actions = actions.clone().to(self.device)
         for i in range(self.decimation):
             torques = torch.clip(self.Kp * (
