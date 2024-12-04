@@ -215,7 +215,7 @@ class Wr3Terrain(VecTask):
         asset_options.default_dof_drive_mode = gymapi.DOF_MODE_EFFORT
         asset_options.collapse_fixed_joints = True
         asset_options.replace_cylinder_with_capsule = True
-        asset_options.flip_visual_attachments = True
+        asset_options.flip_visual_attachments = False
         asset_options.fix_base_link = self.cfg["env"]["urdfAsset"]["fixBaseLink"]
         asset_options.density = 0.001
         asset_options.angular_damping = 0.0

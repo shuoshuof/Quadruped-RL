@@ -54,15 +54,15 @@ env:
     RL_hip_joint: 0.0
     RR_hip_joint: 0.0
 
-    FL_thigh_joint: 0.3
-    FR_thigh_joint: 0.3
-    RL_thigh_joint: 0.3
-    RR_thigh_joint: 0.3
+    FL_thigh_joint: 0.85
+    FR_thigh_joint: 0.85
+    RL_thigh_joint: 0.85
+    RR_thigh_joint: 0.85
 
-    FL_calf_joint: -0.9
-    FR_calf_joint: -0.9
-    RL_calf_joint: -0.9
-    RR_calf_joint: -0.9
+    FL_calf_joint: -1.8
+    FR_calf_joint: -1.8
+    RL_calf_joint: -1.8
+    RR_calf_joint: -1.8
 
   urdfAsset:
     file: "wr3/wr3.urdf"
