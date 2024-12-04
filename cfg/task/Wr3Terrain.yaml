@@ -65,7 +65,7 @@ env:
     RR_calf_joint: -1.8
 
   urdfAsset:
-    file: "wr3/wr3.urdf"
+    file: "wr3/wr3_no_toe_nocol.xml"
     footName: calf #
     kneeName: thigh
     collapseFixedJoints: True
