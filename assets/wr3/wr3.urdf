@@ -26,6 +26,13 @@
         <mesh  filename="./meshes/trunk_link.STL" />
       </geometry>
     </collision>
+    <!-- Shell self filtering -->
+    <self_filter>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <geometry>
+            <box size="1.05 0.5 0.5"/>
+        </geometry>
+    </self_filter>
   </link>
 
   <link name="BASE_INER">
@@ -53,11 +60,11 @@
         <mesh filename="./meshes/FL_hip_link.STL" />
       </geometry>
     </visual>
-    <!-- <collision>
+    <collision>
       <geometry>
         <mesh filename="./meshes/FL_hip_link.STL" />
       </geometry>
-    </collision> -->
+    </collision>
   </link>
 
   <joint  name="FL_hip_joint"  type="revolute">
@@ -81,11 +88,11 @@
           filename="./meshes/FL_thigh_link.STL" />
       </geometry>
     </visual>
-    <!-- <collision>
+    <collision>
       <geometry>
         <mesh  filename="./meshes/FL_thigh_link.STL" />
       </geometry>
-    </collision> -->
+    </collision>
   </link>
 
   <joint  name="FL_thigh_joint" type="revolute">
@@ -138,12 +145,12 @@
           filename="./meshes/FR_hip_link.STL" />
       </geometry>
     </visual>
-    <!-- <collision>
+    <collision>
       <geometry>
         <mesh
           filename="./meshes/FR_hip_link.STL" />
       </geometry>
-    </collision> -->
+    </collision>
   </link>
 
   <joint  name="FR_hip_joint"  type="revolute">
@@ -167,12 +174,12 @@
           filename="./meshes/FR_thigh_link.STL" />
       </geometry>
     </visual>
-    <!-- <collision>
+    <collision>
       <geometry>
         <mesh
           filename="./meshes/FR_thigh_link.STL" />
       </geometry>
-    </collision> -->
+    </collision>
   </link>
 
   <joint name="FR_thigh_joint"  type="revolute">
@@ -226,12 +233,12 @@
           filename="./meshes/RL_hip_link.STL" />
       </geometry>
     </visual>
-    <!-- <collision>
+    <collision>
       <geometry>
         <mesh
           filename="./meshes/RL_hip_link.STL" />
       </geometry>
-    </collision> -->
+    </collision>
   </link>
 
   <joint  name="RL_hip_joint" type="revolute">
@@ -254,11 +261,11 @@
         <mesh  filename="./meshes/RL_thigh_link.STL" />
       </geometry>
     </visual>
-    <!-- <collision>
+    <collision>
       <geometry>
         <mesh  filename="./meshes/RL_thigh_link.STL" />
       </geometry>
-    </collision> -->
+    </collision>
   </link>
 
   <joint  name="RL_thigh_joint" type="revolute">
@@ -308,11 +315,11 @@
         <mesh filename="./meshes/RR_hip_link.STL" />
       </geometry>
     </visual>
-    <!-- <collision>
+    <collision>
       <geometry>
         <mesh filename="./meshes/RR_hip_link.STL" />
       </geometry>
-    </collision> -->
+    </collision>
   </link>
 
   <joint  name="RR_hip_joint"  type="revolute">
@@ -335,11 +342,11 @@
         <mesh filename="./meshes/RR_thigh_link.STL" />
       </geometry>
     </visual>
-    <!-- <collision>
+    <collision>
       <geometry>
         <mesh  filename="./meshes/RR_thigh_link.STL" />
       </geometry>
-    </collision> -->
+    </collision>
   </link>
 
   <joint  name="RR_thigh_joint"  type="revolute">
