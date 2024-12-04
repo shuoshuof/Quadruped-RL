@@ -18,12 +18,12 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh  filename="trunk_link.STL" />
+        <mesh  filename="./meshes/trunk_link.STL" />
       </geometry>
     </visual>
     <collision>
       <geometry>
-        <mesh  filename="trunk_link.STL" />
+        <mesh  filename="./meshes/trunk_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -50,14 +50,14 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="FL_hip_link.STL" />
+        <mesh filename="./meshes/FL_hip_link.STL" />
       </geometry>
     </visual>
-    <collision>
+    <!-- <collision>
       <geometry>
-        <mesh filename="FL_hip_link.STL" />
+        <mesh filename="./meshes/FL_hip_link.STL" />
       </geometry>
-    </collision>
+    </collision> -->
   </link>
 
   <joint  name="FL_hip_joint"  type="revolute">
@@ -78,14 +78,14 @@
     <visual>
       <geometry>
         <mesh
-          filename="FL_thigh_link.STL" />
+          filename="./meshes/FL_thigh_link.STL" />
       </geometry>
     </visual>
-    <collision>
+    <!-- <collision>
       <geometry>
-        <mesh  filename="FL_thigh_link.STL" />
+        <mesh  filename="./meshes/FL_thigh_link.STL" />
       </geometry>
-    </collision>
+    </collision> -->
   </link>
 
   <joint  name="FL_thigh_joint" type="revolute">
@@ -106,13 +106,13 @@
     <visual>
       <geometry>
         <mesh
-          filename="FL_calf_link.STL" />
+          filename="./meshes/FL_calf_link.STL" />
       </geometry>
     </visual>
     <collision>
       <geometry>
         <mesh
-          filename="FL_calf_link.STL" />
+          filename="./meshes/FL_calf_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -135,15 +135,15 @@
     <visual>
       <geometry>
         <mesh
-          filename="FR_hip_link.STL" />
+          filename="./meshes/FR_hip_link.STL" />
       </geometry>
     </visual>
-    <collision>
+    <!-- <collision>
       <geometry>
         <mesh
-          filename="FR_hip_link.STL" />
+          filename="./meshes/FR_hip_link.STL" />
       </geometry>
-    </collision>
+    </collision> -->
   </link>
 
   <joint  name="FR_hip_joint"  type="revolute">
@@ -164,15 +164,15 @@
     <visual>
       <geometry>
         <mesh
-          filename="FR_thigh_link.STL" />
+          filename="./meshes/FR_thigh_link.STL" />
       </geometry>
     </visual>
-    <collision>
+    <!-- <collision>
       <geometry>
         <mesh
-          filename="FR_thigh_link.STL" />
+          filename="./meshes/FR_thigh_link.STL" />
       </geometry>
-    </collision>
+    </collision> -->
   </link>
 
   <joint name="FR_thigh_joint"  type="revolute">
@@ -194,13 +194,13 @@
     <visual>
       <geometry>
         <mesh
-          filename="FR_calf_link.STL" />
+          filename="./meshes/FR_calf_link.STL" />
       </geometry>
     </visual>
     <collision>
       <geometry>
         <mesh
-          filename="FR_calf_link.STL" />
+          filename="./meshes/FR_calf_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -223,15 +223,15 @@
     <visual>
       <geometry>
         <mesh
-          filename="RL_hip_link.STL" />
+          filename="./meshes/RL_hip_link.STL" />
       </geometry>
     </visual>
-    <collision>
+    <!-- <collision>
       <geometry>
         <mesh
-          filename="RL_hip_link.STL" />
+          filename="./meshes/RL_hip_link.STL" />
       </geometry>
-    </collision>
+    </collision> -->
   </link>
 
   <joint  name="RL_hip_joint" type="revolute">
@@ -251,14 +251,14 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh  filename="RL_thigh_link.STL" />
+        <mesh  filename="./meshes/RL_thigh_link.STL" />
       </geometry>
     </visual>
-    <collision>
+    <!-- <collision>
       <geometry>
-        <mesh  filename="RL_thigh_link.STL" />
+        <mesh  filename="./meshes/RL_thigh_link.STL" />
       </geometry>
-    </collision>
+    </collision> -->
   </link>
 
   <joint  name="RL_thigh_joint" type="revolute">
@@ -278,12 +278,12 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh  filename="RL_calf_link.STL" />
+        <mesh  filename="./meshes/RL_calf_link.STL" />
       </geometry>
     </visual>
     <collision>
       <geometry>
-        <mesh  filename="RL_calf_link.STL" />
+        <mesh  filename="./meshes/RL_calf_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -305,14 +305,14 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="RR_hip_link.STL" />
+        <mesh filename="./meshes/RR_hip_link.STL" />
       </geometry>
     </visual>
-    <collision>
+    <!-- <collision>
       <geometry>
-        <mesh filename="RR_hip_link.STL" />
+        <mesh filename="./meshes/RR_hip_link.STL" />
       </geometry>
-    </collision>
+    </collision> -->
   </link>
 
   <joint  name="RR_hip_joint"  type="revolute">
@@ -332,14 +332,14 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="RR_thigh_link.STL" />
+        <mesh filename="./meshes/RR_thigh_link.STL" />
       </geometry>
     </visual>
-    <collision>
+    <!-- <collision>
       <geometry>
-        <mesh  filename="RR_thigh_link.STL" />
+        <mesh  filename="./meshes/RR_thigh_link.STL" />
       </geometry>
-    </collision>
+    </collision> -->
   </link>
 
   <joint  name="RR_thigh_joint"  type="revolute">
@@ -359,12 +359,12 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="RR_calf_link.STL" />
+        <mesh filename="./meshes/RR_calf_link.STL" />
       </geometry>
     </visual>
     <collision>
       <geometry>
-        <mesh  filename="RR_calf_link.STL" />
+        <mesh  filename="./meshes/RR_calf_link.STL" />
       </geometry>
     </collision>
   </link>
