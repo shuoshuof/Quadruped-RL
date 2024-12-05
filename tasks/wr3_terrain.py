@@ -60,6 +60,7 @@ class Wr3Terrain(VecTask):
         self.command_x_range = self.cfg["env"]["randomCommandVelocityRanges"]["linear_x"]
         self.command_y_range = self.cfg["env"]["randomCommandVelocityRanges"]["linear_y"]
         self.command_yaw_range = self.cfg["env"]["randomCommandVelocityRanges"]["yaw"]
+        self.use_default_commands = self.cfg["env"]["useDefaultCommands"]
 
         # base init state
         pos = self.cfg["env"]["baseInitState"]["pos"]
@@ -307,6 +308,9 @@ class Wr3Terrain(VecTask):
         # heights = torch.clip(self.root_states[:, 2].unsqueeze(1) - 0.5 - self.measured_heights, -1,
         #                      1.) * self.height_meas_scale
         self.measured_heights = heights = torch.zeros((self.num_envs,140),dtype=torch.float32).to(self.device)
+        if self.use_default_commands:
+            self.commands*=0
+            self.commands[:, 0] = 1
         self.obs_buf = torch.cat((self.base_lin_vel * self.lin_vel_scale,
                                   self.base_ang_vel * self.ang_vel_scale,
                                   self.projected_gravity,

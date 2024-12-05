@@ -74,7 +74,7 @@ class Wr3MujocoEnv(BaseDeployEnv):
         self.commands = torch.zeros((self.num_envs,4),dtype=torch.float32,device=self.device)
         self.commands[:,0] = 1.
         self.commands_scale = torch.tensor([self.lin_vel_scale, self.lin_vel_scale, self.ang_vel_scale],device=self.device)
-
+        self.use_default_commands = self.cfg["env"]["useDefaultCommands"]
         # control
         self.default_dof_pos = torch.zeros(self.num_dofs, dtype=torch.float, device=self.device,requires_grad=False)
         self.Kp = self.cfg["env"]["control"]["stiffness"]
@@ -178,6 +178,10 @@ class Wr3MujocoEnv(BaseDeployEnv):
         heights = torch.zeros((self.num_height_points,),dtype=torch.float32,device=self.device)
 
         action = self.get_action()
+
+        if self.use_default_commands:
+            self.commands*=0
+            self.commands[:, 0] = 1
 
         obs_tensor = torch.concatenate([
             base_lin_vel*self.lin_vel_scale,
