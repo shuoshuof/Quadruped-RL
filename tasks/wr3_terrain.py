@@ -228,6 +228,7 @@ class Wr3Terrain(VecTask):
         self.num_dof = self.gym.get_asset_dof_count(anymal_asset)
         self.num_bodies = self.gym.get_asset_rigid_body_count(anymal_asset)
 
+        # TODO: num of rigid bodies will be changed because some collision have been removed
         # prepare friction randomization
         rigid_shape_prop = self.gym.get_asset_rigid_shape_properties(anymal_asset)
         friction_range = self.cfg["env"]["learn"]["frictionRange"]
@@ -302,9 +303,10 @@ class Wr3Terrain(VecTask):
                                      self.reset_buf)
 
     def compute_observations(self):
-        self.measured_heights = self.get_heights()
-        heights = torch.clip(self.root_states[:, 2].unsqueeze(1) - 0.5 - self.measured_heights, -1,
-                             1.) * self.height_meas_scale
+        # self.measured_heights = self.get_heights()
+        # heights = torch.clip(self.root_states[:, 2].unsqueeze(1) - 0.5 - self.measured_heights, -1,
+        #                      1.) * self.height_meas_scale
+        self.measured_heights = heights = torch.zeros((self.num_envs,140),dtype=torch.float32).to(self.device)
         self.obs_buf = torch.cat((self.base_lin_vel * self.lin_vel_scale,
                                   self.base_ang_vel * self.ang_vel_scale,
                                   self.projected_gravity,
