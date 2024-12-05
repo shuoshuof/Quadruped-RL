@@ -31,6 +31,8 @@ class Wr3Terrain(VecTask):
         self.debug_viz = self.cfg["env"]["enableDebugVis"]
         self.init_done = False
 
+        self.randomization_params = self.cfg["task"]["randomization_params"]
+
         # normalization
         self.lin_vel_scale = self.cfg["env"]["learn"]["linearVelocityScale"]
         self.ang_vel_scale = self.cfg["env"]["learn"]["angularVelocityScale"]
@@ -396,6 +398,8 @@ class Wr3Terrain(VecTask):
         self.episode_sums["hip"] += rew_hip
 
     def reset_idx(self, env_ids):
+        self.apply_randomizations(self.randomization_params)
+
         # TODO: reset need to be clipped?
         positions_offset = torch_rand_float(0.5, 1.5, (len(env_ids), self.num_dof), device=self.device)
         velocities = torch_rand_float(-0.1, 0.1, (len(env_ids), self.num_dof), device=self.device)
