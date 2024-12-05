@@ -33,6 +33,8 @@ class AssetDesc:
 
 asset_descriptors = [
     AssetDesc("assets/wr3/wr3.urdf", False),
+    AssetDesc("assets/wr3/wr3_no_toe.xml",True),
+    AssetDesc("assets/wr3/wr3_no_toe_nocol.xml",True),
 
 ]
 
