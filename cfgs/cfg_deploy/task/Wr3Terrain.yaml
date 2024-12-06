@@ -29,7 +29,7 @@ env:
     slopeTreshold: 0.5
 
   baseInitState:
-    pos: [0.0, 0.0, 0.4] # x,y,z [m]
+    pos: [0.0, 0.0, 0.35] # x,y,z [m]
     rot: [0.0, 0.0, 0.0, 1.0] # x,y,z,w [quat]
     vLinear: [0.0, 0.0, 0.0]  # x,y,z [m/s]
     vAngular: [0.0, 0.0, 0.0]  # x,y,z [rad/s]
@@ -150,3 +150,61 @@ sim:
 
 task:
   randomize: False
+  randomization_params:
+    # specify which attributes to randomize for each actor type and property
+    frequency: 300   # Define how many environment steps between generating new randomizations
+    observations:
+      range: [ 0., 0.002 ] # range for the white noise
+      operation: "additive"
+      distribution: "gaussian"
+    actions:
+      range: [ 0., 0.002 ]
+      operation: "additive"
+      distribution: "gaussian"
+    sim_params:
+      gravity:
+        range: [ 0.95, 1.05 ]
+        operation: "scaling"
+        distribution: "uniform"
+        schedule: "linear"  # "linear" will linearly interpolate between no rand and max rand
+        schedule_steps: 1000
+    actor_params:
+      wr3:
+        color: True
+        #         rigid_body_properties:
+        #           mass:
+        #             range: [0.75, 1.50]
+        #             operation: "scaling"
+        #             distribution: "uniform"
+        #             setup_only: True # Property will only be randomized once before simulation is started. See Domain Randomization Documentation for more info.
+        #             schedule: "linear"  # "linear" will linearly interpolate between no rand and max rand
+        #             schedule_steps: 1000
+        rigid_shape_properties:
+          friction:
+            num_buckets: 500
+            range: [ -0.5, 2.0 ]
+            operation: "scaling"
+            distribution: "uniform"
+            schedule: "linear"  # "linear" will scale the current random sample by `min(current num steps, schedule_steps) / schedule_steps`
+            schedule_steps: 1000
+          # restitution:
+          #   # 恢复系数。它是刚体碰撞后最终速度与初始速度的比值。范围 [0,1]
+          #   range: [0., 0.01]
+          #   operation: "scaling"
+          #   distribution: "uniform"
+          #   schedule: "linear"  # "linear" will scale the current random sample by `min(current num steps, schedule_steps) / schedule_steps`
+          #   schedule_steps: 1000
+  #        dof_properties:
+  #         damping:
+  #           range: [0.8, 1.2]
+  #           operation: "scaling"
+  #           distribution: "uniform"
+  #           schedule: "linear"  # "linear" will scale the current random sample by `min(current num steps, schedule_steps) / schedule_steps`
+  #           schedule_steps: 1000
+  #         # 刚度
+  #         stiffness:
+  #           range: [0.8, 1.2]
+  #           operation: "scaling"
+  #           distribution: "uniform"
+  #           schedule: "linear"  # "linear" will scale the current random sample by `min(current num steps, schedule_steps) / schedule_steps`
+  #           schedule_steps: 1000
