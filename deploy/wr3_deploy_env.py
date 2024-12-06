@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-@Time ： 2024/12/6 15:59
+@Time ： 2024/12/4 20:09
 @Auth ： shuoshuof
-@File ：wr3_sim2sim_env.py
+@File ：wr3_deploy_env.py
 @Project ：Quadruped-RL
 """
+from abc import ABC, abstractmethod
 import copy
 import threading
 import hydra
@@ -14,15 +15,17 @@ from collections import OrderedDict
 import time
 
 from loop_rate_limiters import RateLimiter
-import mujoco
-import mujoco.viewer
+import gym
 from isaacgymenvs.utils.torch_jit_utils import quat_rotate_inverse,quat_apply
 import torch
 
 from deploy.base_deploy_env import BaseDeployEnv
+from deploy.robot_communication import DataReceiver, MotorCmdDataHandler
 
-class Wr3MujocoEnv(BaseDeployEnv):
-    def __init__(self):
+
+class Wr3DeployEnv(BaseDeployEnv):
+
+    def __init__(self) -> None:
         from hydra import core
         core.global_hydra.GlobalHydra.instance().clear()
         hydra.initialize(config_path='../cfgs/cfg_deploy/task/')
@@ -60,91 +63,100 @@ class Wr3MujocoEnv(BaseDeployEnv):
 
         self.num_height_points = 140
 
-        self.scene_path = 'assets/wr3/scene.xml'
-        self._init_sim()
-        self._launch_viewer()
+        self._init_SDK()
 
-        sim_thread = threading.Thread(target=self._run_sim_thread)
-        sim_thread.start()
+        control_thread = threading.Thread(target=self._control_thread)
+        control_thread.start()
 
-    def _init_sim(self):
-        self.scene = mujoco.MjModel.from_xml_path(self.scene_path)
-        self.mj_data = mujoco.MjData(self.scene)
-
-        self.opt = mujoco.MjvOption()
-    def _launch_viewer(self):
-        self.viewer = mujoco.viewer.launch_passive(self.scene, self.mj_data)
-        self.viewer.cam.lookat = [0.5, 0., 0.5]
-        self.viewer.cam.elevation = -90
-        self.viewer.cam.azimuth = 0
+    def _init_SDK(self):
+        self.receiver = DataReceiver()
+        self.motor_cmd = MotorCmdDataHandler(num_motors = 12, header1=0x57, header2=0x4C, sequence=0, data_type=0x01)
+        # TODO: motor order may be different with the sim
+        for i in range(self.num_dofs):
+            self.motor_cmd.cmd[i].kp = self.Kp
+            self.motor_cmd.cmd[i].kd = self.Kd
 
     def _reset_robot(self):
-        # initialize the robot with start pose
-        robot_start_poses = self.cfg["env"]["defaultJointAngles"]
+        while True:
+            state_dict = self._acquire_robot_state()
+            self.update_state(state_dict)
 
-        for idx,(joint_name, joint_angle) in enumerate(robot_start_poses.items()):
-            joint_idx = mujoco.mj_name2id(self.scene, mujoco.mjtObj.mjOBJ_JOINT, joint_name)
-            self.mj_data.qpos[6+joint_idx] = joint_angle
-            self.default_dof_pos[idx] = joint_angle
+            actions = torch.zeros((self.num_envs,self.num_actions),dtype=torch.float32,device=self.device)
+            self._apply_action_to_robot(actions,state_dict)
+            if np.all(state_dict["dof_pos"]-self.default_dof_pos < 1e-3):
+                break
 
-        robot_base_state = self.cfg["env"]['baseInitState']
 
-        self.mj_data.qpos[:3] = np.array(robot_base_state['pos'],dtype=np.float32)
-        self.mj_data.qvel[3:7] = np.array(robot_base_state['rot'],dtype=np.float32)[[1, 2, 3, 0]]
-        self.mj_data.qvel[:3] = np.array(robot_base_state['vLinear'],dtype=np.float32)
-        self.mj_data.qvel[3:6] = np.array(robot_base_state['vAngular'],dtype=np.float32)
-
-        self.mj_data.qvel = 0.
-        self.mj_data.ctrl = 0.
-
-        mujoco.mj_step(self.scene, self.mj_data)
-        self.viewer.sync()
-
-        state_dict = self._acquire_mujoco_state()
-        self.update_state(state_dict)
-
-    def _run_sim_thread(self):
+    def _control_thread(self):
         self._reset_robot()
         self.has_started.set()
 
-        rate = RateLimiter(frequency=200.0, warn=False)
-        while self.viewer.is_running():
+        rate = RateLimiter(frequency=1000,warn=True)
+        while True:
             start = time.time()
-            state_dict = self._acquire_mujoco_state()
+            state_dict = self._acquire_robot_state()
             self.update_state(state_dict)
-            actions = self.get_action()
-            self._apply_action_in_mujoco(actions,state_dict)
 
-            mujoco.mj_step(self.scene,self.mj_data)
-            self.viewer.sync()
+            actions = self.get_action()
+            self._apply_action_to_robot(actions,state_dict)
+
             rate.sleep()
             end = time.time()
-            print('Simulation step took {} seconds'.format(end - start))
+            print("Control Thread Time: ", end - start)
 
 
-    def _acquire_mujoco_state(self):
-        base_quat = self.mj_data.qpos[3:7].copy().astype(np.float32)[[1,2,3,0]]
 
-        base_lin_vel = self.mj_data.qvel[:3].copy().astype(np.float32)
+    def _acquire_robot_state(self):
+        odometer_data = self.receiver.get_odometer_data()
+        imu_data = self.receiver.get_imu_data()
 
-        base_ang_vel = self.mj_data.qvel[3:6].copy().astype(np.float32)
+        # TODO: need to change the order of the quaternion?????
+        base_quat = np.array(imu_data.quaternion,dtype=np.float32)[[1,2,3,0]]
 
-        # TODO: add heights
-        heights = np.zeros((self.num_height_points,),dtype=np.float32)
-        # TODO: dof may be not correct
-        dof_pos = self.mj_data.qpos[7:7+12].copy().astype(np.float32)
-        dof_vel = self.mj_data.qvel[6:6+12].copy().astype(np.float32)
+        base_lin_vel = np.array([
+            odometer_data.linear_x,
+            odometer_data.linear_y,
+            odometer_data.linear_z,
+        ],dtype=np.float32)
+
+        base_ang_vel = np.array(imu_data.gyroscope, dtype=np.float32)
+
+        heights = np.zeros((self.num_height_points,), dtype=np.float32)
+
+        motor_data = self.receiver.get_motor_state_data()
+
+        dof_pos = []
+        dof_vel = []
+        dof_mode = []
+        for i in range(self.num_dofs):
+            dof_pos.append(motor_data.state[i].pos)
+            dof_vel.append(motor_data.state[i].w)
+            dof_mode.append(motor_data.state[i].mode)
+        dof_pos = np.array(dof_pos,dtype=np.float32)
+        dof_vel = np.array(dof_vel,dtype=np.float32)
 
         state_dict = OrderedDict(
-            base_quat = base_quat,
-            base_lin_vel = base_lin_vel,
-            base_ang_vel = base_ang_vel,
-            heights = heights,
-            dof_pos = dof_pos,
-            dof_vel = dof_vel
+            base_quat = base_quat.copy(),
+            base_lin_vel = base_lin_vel.copy(),
+            base_ang_vel = base_ang_vel.copy(),
+            heights = heights.copy(),
+            dof_pos = dof_pos.copy(),
+            dof_vel = dof_vel.copy()
         )
 
         return state_dict
+
+    def _apply_action_to_robot(self, actions,state_dict):
+        dof_vel = state_dict['dof_vel']
+        dof_pos = state_dict['dof_pos']
+        actions = actions.squeeze(0).cpu().numpy()
+        target_dof_pos = self.action_scale * actions + self.default_dof_pos
+        # TODO: add protection for out of bound
+        # TODO: motor order may be different with the sim
+        for i in range(self.num_dofs):
+            self.motor_cmd.cmd[i].pos = target_dof_pos[i]
+
+        self.motor_cmd.send_data()
 
     def get_obs(self):
         state_dict = self.get_state()
@@ -188,17 +200,6 @@ class Wr3MujocoEnv(BaseDeployEnv):
         assert obs_tensor.shape == (self.num_envs,self.num_obs)
         return obs_tensor
 
-    def _apply_action_in_mujoco(self, actions, state_dict):
-        dof_vel = state_dict['dof_vel']
-        dof_pos = state_dict['dof_pos']
-        actions = actions.squeeze(0).cpu().numpy()
-        torques = self.Kp * (self.action_scale * actions + self.default_dof_pos - dof_pos) - self.Kd * dof_vel
-        torques_clipped = np.clip(torques,-80.,80.)
-        assert self.mj_data.ctrl.shape == (12,)
-        assert torques_clipped.shape == (12,)
-        self.mj_data.ctrl[:12] = torques_clipped
-
-
 
 @torch.jit.script
 def wrap_to_pi(angles):
@@ -206,12 +207,17 @@ def wrap_to_pi(angles):
     angles -= 2 * np.pi * (angles > np.pi)
     return angles
 
-if __name__ == "__main__":
-    env = Wr3MujocoEnv()
-    i=0
-    while True:
-        i+=1
-        # if i%1000==0:
-        #     env.reset()
-        # env.step(action=torch.ones((1,12),dtype=torch.float32,device='cuda:0'))
-        time.sleep(1/1000)
+
+if __name__ == '__main__':
+    pass
+
+
+
+
+
+
+
+
+
+
+
