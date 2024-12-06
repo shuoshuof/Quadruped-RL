@@ -6,6 +6,7 @@
 @Project ：Quadruped-RL
 """
 from abc import ABC, abstractmethod
+import copy
 import threading
 import hydra
 from omegaconf import DictConfig, OmegaConf
@@ -35,16 +36,6 @@ class BaseDeployEnv(ABC):
     @abstractmethod
     def reset(self):
         raise NotImplementedError
-
-class Wr3SDKEnv(BaseDeployEnv):
-    def __init__(self,task):
-        super().__init__(task)
-
-    def step(self,action):
-        pass
-
-    def reset(self):
-        pass
 
 class Wr3MujocoEnv(BaseDeployEnv):
     def __init__(self):
@@ -76,7 +67,7 @@ class Wr3MujocoEnv(BaseDeployEnv):
         self.commands_scale = torch.tensor([self.lin_vel_scale, self.lin_vel_scale, self.ang_vel_scale],device=self.device)
         self.use_default_commands = self.cfg["env"]["useDefaultCommands"]
         # control
-        self.default_dof_pos = torch.zeros(self.num_dofs, dtype=torch.float, device=self.device,requires_grad=False)
+        self.default_dof_pos = np.zeros(self.num_dofs, dtype=np.float32)
         self.Kp = self.cfg["env"]["control"]["stiffness"]
         self.Kd = self.cfg["env"]["control"]["damping"]
         self.action_scale = self.cfg["env"]["control"]["actionScale"]
@@ -107,7 +98,9 @@ class Wr3MujocoEnv(BaseDeployEnv):
     def _allocate_buffers(self):
         self.obs_buf = torch.zeros((self.num_envs,self.num_obs),device=self.device,dtype=torch.float32)
         self.action_buf = torch.zeros((self.num_envs,self.num_actions),device=self.device,dtype=torch.float32)
+        self.state_dict = {}
     def _init_thread_values(self):
+        self.state_lock = threading.Lock()
         self.obs_lock = threading.Lock()
         self.action_lock = threading.Lock()
         self.has_started = threading.Event()
@@ -133,49 +126,73 @@ class Wr3MujocoEnv(BaseDeployEnv):
         mujoco.mj_step(self.scene, self.mj_data)
         self.viewer.sync()
 
-        obs_tensor, _ = self._acquire_mujoco_state()
-        self.update_obs(obs_tensor)
+        state_dict = self._acquire_mujoco_state()
+        self.update_state(state_dict)
 
     def _run_sim_thread(self):
         self._reset_robot()
         self.has_started.set()
 
-        rate = RateLimiter(frequency=100.0, warn=False)
+        rate = RateLimiter(frequency=200.0, warn=False)
         while self.viewer.is_running():
             start = time.time()
-            obs_tensor, obs_dict = self._acquire_mujoco_state()
-            self.update_obs(obs_tensor)
+            state_dict = self._acquire_mujoco_state()
+            self.update_state(state_dict)
             actions = self.get_action()
-            self._apply_action_in_mujoco(actions,obs_dict)
+            self._apply_action_in_mujoco(actions,state_dict)
 
             mujoco.mj_step(self.scene,self.mj_data)
             self.viewer.sync()
             rate.sleep()
             end = time.time()
-            # print('Simulation step took {} seconds'.format(end - start))
+            print('Simulation step took {} seconds'.format(end - start))
+
 
     def _acquire_mujoco_state(self):
-        base_quat =  torch.from_numpy(self.mj_data.qpos[3:7].copy().astype(np.float32)).to(self.device)[[1,2,3,0]]
+        base_quat = self.mj_data.qpos[3:7].copy().astype(np.float32)[[1,2,3,0]]
+
+        base_lin_vel = self.mj_data.qvel[:3].copy().astype(np.float32)
+
+        base_ang_vel = self.mj_data.qvel[3:6].copy().astype(np.float32)
+
+        # TODO: add heights
+        heights = np.zeros((self.num_height_points,),dtype=np.float32)
+        # TODO: dof may be not correct
+        dof_pos = self.mj_data.qpos[7:7+12].copy().astype(np.float32)
+        dof_vel = self.mj_data.qvel[6:6+12].copy().astype(np.float32)
+
+        state_dict = OrderedDict(
+            base_quat = base_quat,
+            base_lin_vel = base_lin_vel,
+            base_ang_vel = base_ang_vel,
+            heights = heights,
+            dof_pos = dof_pos,
+            dof_vel = dof_vel
+        )
+
+        return state_dict
+
+    def get_obs(self):
+        state_dict = self.get_state()
+        base_quat = torch.from_numpy(state_dict['base_quat']).to(self.device)
+
         # TODO: quat rotate inverse may be not correct
-        base_lin_vel = torch.from_numpy(self.mj_data.qvel[:3].copy().astype(np.float32)).to(self.device)
+        base_lin_vel = torch.from_numpy(state_dict['base_lin_vel']).to(self.device)
         base_lin_vel = quat_rotate_inverse(base_quat.unsqueeze(0),base_lin_vel.unsqueeze(0))
 
-        base_ang_vel = torch.from_numpy(self.mj_data.qvel[3:6].copy().astype(np.float32)).to(self.device)
+        base_ang_vel = torch.from_numpy(state_dict['base_ang_vel']).to(self.device)
         base_ang_vel = quat_rotate_inverse(base_quat.unsqueeze(0),base_ang_vel.unsqueeze(0))
 
         projected_gravity = quat_rotate_inverse(base_quat.unsqueeze(0),self.gravity_vec.clone().unsqueeze(0))
 
-        forward = quat_apply(base_quat.unsqueeze(0),self.forward_vec)
+        forward = quat_apply(base_quat.unsqueeze(0), self.forward_vec)
         heading = torch.atan2(forward[:, 1], forward[:, 0])
         self.commands[:,2] = torch.clip(0.5 * wrap_to_pi(self.commands[:, 3] - heading), -1., 1.)
 
+        dof_pos = torch.from_numpy(state_dict['dof_pos']).to(self.device)
+        dof_vel = torch.from_numpy(state_dict['dof_vel']).to(self.device)
 
-
-        dof_pos = torch.from_numpy(self.mj_data.qpos[7:7+12].copy().astype(np.float32)).to(self.device)
-        dof_vel = torch.from_numpy(self.mj_data.qvel[6:6+12].copy().astype(np.float32)).to(self.device)
-
-        # TODO: add heights
-        heights = torch.zeros((self.num_height_points,),dtype=torch.float32,device=self.device)
+        heights = torch.from_numpy(state_dict['heights']).to(self.device)
 
         action = self.get_action()
 
@@ -193,38 +210,26 @@ class Wr3MujocoEnv(BaseDeployEnv):
             heights.unsqueeze(0),
             action,
         ],dim=-1)
+
         assert obs_tensor.shape == (self.num_envs,self.num_obs)
+        return obs_tensor
 
-        obs_dict = OrderedDict(
-            base_lin_vel = base_lin_vel*self.lin_vel_scale,
-            base_ang_vel = base_ang_vel*self.ang_vel_scale,
-            projected_gravity = projected_gravity,
-            command = self.commands[:,:3]*self.commands_scale,
-            dof_pos = dof_pos.unsqueeze(0)*self.dof_pos_scale,
-            dof_vel = dof_vel.unsqueeze(0)*self.dof_vel_scale,
-            heights = heights.unsqueeze(0),
-            action = action
-        )
-        return obs_tensor, obs_dict
-
-    def _apply_action_in_mujoco(self, actions, obs_dict):
-        actions = self.get_action()
-        dof_vel = obs_dict['dof_vel']
-        dof_pos = obs_dict['dof_pos']
+    def _apply_action_in_mujoco(self, actions, state_dict):
+        dof_vel = state_dict['dof_vel']
+        dof_pos = state_dict['dof_pos']
+        actions = actions.squeeze(0).cpu().numpy()
         torques = self.Kp * (self.action_scale * actions + self.default_dof_pos - dof_pos) - self.Kd * dof_vel
-        torques_clipped = torch.clamp(torques,-80.,80.)
-
-        torques_clipped = torques_clipped.cpu().numpy()
+        torques_clipped = np.clip(torques,-80.,80.)
         assert self.mj_data.ctrl.shape == (12,)
-        self.mj_data.ctrl[:12] = torques_clipped[0]
+        assert torques_clipped.shape == (12,)
+        self.mj_data.ctrl[:12] = torques_clipped
 
-
-    def update_obs(self,obs):
-        with self.obs_lock:
-            self.obs_buf[:] = obs
-    def get_obs(self):
-        with self.obs_lock:
-            return self.obs_buf.clone()
+    def update_state(self,state_dict):
+        with self.state_lock:
+            self.state_dict = state_dict
+    def get_state(self):
+        with self.state_lock:
+            return copy.deepcopy(self.state_dict)
     def update_action(self,action):
         with self.action_lock:
             self.action_buf[:] = action
@@ -264,10 +269,10 @@ if __name__ == "__main__":
     i=0
     while True:
         i+=1
-        if i%1000==0:
-            env.reset()
+        # if i%1000==0:
+        #     env.reset()
         # env.step(action=torch.ones((1,12),dtype=torch.float32,device='cuda:0'))
-        time.sleep(1/60)
+        time.sleep(1/1000)
 
 
 
