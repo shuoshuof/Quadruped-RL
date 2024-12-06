@@ -100,7 +100,7 @@ class Wr3Deployer(PpoPlayerContinuous):
 
         need_init_rnn = self.is_rnn
 
-        from deploy.wr3_deploy_env import Wr3MujocoEnv
+        from deploy.wr3_sim2sim_env import Wr3MujocoEnv
 
         mujoco_env = Wr3MujocoEnv()
 

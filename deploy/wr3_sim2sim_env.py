@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-@Time ： 2024/12/4 20:09
+@Time ： 2024/12/6 15:59
 @Auth ： shuoshuof
-@File ：wr3_deploy_env.py
+@File ：wr3_sim2sim_env.py
 @Project ：Quadruped-RL
 """
-from abc import ABC, abstractmethod
 import copy
 import threading
 import hydra
@@ -15,31 +14,15 @@ from collections import OrderedDict
 import time
 
 from loop_rate_limiters import RateLimiter
-import gym
 import mujoco
 import mujoco.viewer
 from isaacgymenvs.utils.torch_jit_utils import quat_rotate_inverse,quat_apply
 import torch
 
-
-
-
-class BaseDeployEnv(ABC):
-    def __init__(self):
-        pass
-    @abstractmethod
-    def _allocate_buffers(self):
-        pass
-    @abstractmethod
-    def step(self,action):
-        raise NotImplementedError
-    @abstractmethod
-    def reset(self):
-        raise NotImplementedError
+from deploy.base_deploy_env import BaseDeployEnv
 
 class Wr3MujocoEnv(BaseDeployEnv):
     def __init__(self):
-        super().__init__()
         from hydra import core
         core.global_hydra.GlobalHydra.instance().clear()
         hydra.initialize(config_path='../cfgs/cfg_deploy/task/')
@@ -48,9 +31,12 @@ class Wr3MujocoEnv(BaseDeployEnv):
 
         self.device = 'cuda:0'
 
-        self.num_envs = self.cfg["env"]['numEnvs']
-        self.num_obs = self.cfg["env"]['numObservations']
-        self.num_actions = self.cfg["env"]['numActions']
+        num_envs = self.cfg["env"]['numEnvs']
+        num_obs = self.cfg["env"]['numObservations']
+        num_actions = self.cfg["env"]['numActions']
+
+        super().__init__(num_envs=num_envs,num_obs=num_obs,num_actions=num_actions)
+
         self.num_dofs = self.num_actions
 
         self.lin_vel_scale = self.cfg["env"]["learn"]["linearVelocityScale"]
@@ -78,9 +64,6 @@ class Wr3MujocoEnv(BaseDeployEnv):
         self._init_sim()
         self._launch_viewer()
 
-        self._allocate_buffers()
-
-        self._init_thread_values()
         sim_thread = threading.Thread(target=self._run_sim_thread)
         sim_thread.start()
 
@@ -95,15 +78,6 @@ class Wr3MujocoEnv(BaseDeployEnv):
         self.viewer.cam.elevation = -90
         self.viewer.cam.azimuth = 0
 
-    def _allocate_buffers(self):
-        self.obs_buf = torch.zeros((self.num_envs,self.num_obs),device=self.device,dtype=torch.float32)
-        self.action_buf = torch.zeros((self.num_envs,self.num_actions),device=self.device,dtype=torch.float32)
-        self.state_dict = {}
-    def _init_thread_values(self):
-        self.state_lock = threading.Lock()
-        self.obs_lock = threading.Lock()
-        self.action_lock = threading.Lock()
-        self.has_started = threading.Event()
     def _reset_robot(self):
         # initialize the robot with start pose
         joint_start_poses = self.cfg["env"]["defaultJointAngles"]
@@ -224,38 +198,6 @@ class Wr3MujocoEnv(BaseDeployEnv):
         assert torques_clipped.shape == (12,)
         self.mj_data.ctrl[:12] = torques_clipped
 
-    def update_state(self,state_dict):
-        with self.state_lock:
-            self.state_dict = state_dict
-    def get_state(self):
-        with self.state_lock:
-            return copy.deepcopy(self.state_dict)
-    def update_action(self,action):
-        with self.action_lock:
-            self.action_buf[:] = action
-    def get_action(self):
-        with self.action_lock:
-            return self.action_buf.clone()
-    def step(self, action):
-        self.update_action(action)
-        obs = self.get_obs()
-        obs_dict = {}
-        obs_dict['obs'] = obs
-
-        return (obs,
-                torch.tensor([0.],dtype=torch.float32,device=self.device),
-                torch.tensor([False],dtype=torch.bool,device=self.device),
-                {})
-
-    def reset(self):
-        self._reset_robot()
-        self.has_started.set()
-
-        obs = self.get_obs()
-        obs_dict = {}
-        obs_dict['obs'] = obs
-
-        return obs_dict
 
 
 @torch.jit.script
@@ -273,14 +215,3 @@ if __name__ == "__main__":
         #     env.reset()
         # env.step(action=torch.ones((1,12),dtype=torch.float32,device='cuda:0'))
         time.sleep(1/1000)
-
-
-
-
-
-
-
-
-
-
-
