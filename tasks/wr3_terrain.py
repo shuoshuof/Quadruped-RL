@@ -51,12 +51,13 @@ class Wr3Terrain(VecTask):
         self.rew_scales["orient"] = self.cfg["env"]["learn"]["orientationRewardScale"]
         self.rew_scales["torque"] = self.cfg["env"]["learn"]["torqueRewardScale"]
         self.rew_scales["joint_acc"] = self.cfg["env"]["learn"]["jointAccRewardScale"]
-        self.rew_scales["base_height"] = self.cfg["env"]["learn"]["baseHeightRewardScale"]
+        # self.rew_scales["base_height"] = self.cfg["env"]["learn"]["baseHeightRewardScale"]
         self.rew_scales["air_time"] = self.cfg["env"]["learn"]["feetAirTimeRewardScale"]
         self.rew_scales["collision"] = self.cfg["env"]["learn"]["kneeCollisionRewardScale"]
         self.rew_scales["stumble"] = self.cfg["env"]["learn"]["feetStumbleRewardScale"]
         self.rew_scales["action_rate"] = self.cfg["env"]["learn"]["actionRateRewardScale"]
-        self.rew_scales["hip"] = self.cfg["env"]["learn"]["hipRewardScale"]
+        # self.rew_scales["hip"] = self.cfg["env"]["learn"]["hipRewardScale"]
+        self.rew_scales["pose"] = self.cfg["env"]["learn"]["poseRewardScale"]
 
         # command ranges
         self.command_x_range = self.cfg["env"]["randomCommandVelocityRanges"]["linear_x"]
@@ -147,12 +148,13 @@ class Wr3Terrain(VecTask):
             self.default_dof_pos[:, i] = angle
         # reward episode sums
         torch_zeros = lambda: torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
-        self.episode_sums = {"lin_vel_xy": torch_zeros(), "lin_vel_z": torch_zeros(), "ang_vel_z": torch_zeros(),
-                             "ang_vel_xy": torch_zeros(),
-                             "orient": torch_zeros(), "torques": torch_zeros(), "joint_acc": torch_zeros(),
-                             "base_height": torch_zeros(),
-                             "air_time": torch_zeros(), "collision": torch_zeros(), "stumble": torch_zeros(),
-                             "action_rate": torch_zeros(), "hip": torch_zeros()}
+        # self.episode_sums = {"lin_vel_xy": torch_zeros(), "lin_vel_z": torch_zeros(), "ang_vel_z": torch_zeros(),
+        #                      "ang_vel_xy": torch_zeros(),
+        #                      "orient": torch_zeros(), "torques": torch_zeros(), "joint_acc": torch_zeros(),
+        #                      "base_height": torch_zeros(),
+        #                      "air_time": torch_zeros(), "collision": torch_zeros(), "stumble": torch_zeros(),
+        #                      "action_rate": torch_zeros(), "hip": torch_zeros()}
+        self.episode_sums = { rew_name: torch_zeros() for rew_name in self.rew_scales.keys() }
 
         self.reset_idx(torch.arange(self.num_envs, device=self.device))
         self.init_done = True
@@ -310,9 +312,9 @@ class Wr3Terrain(VecTask):
         # heights = torch.clip(self.root_states[:, 2].unsqueeze(1) - 0.5 - self.measured_heights, -1,
         #                      1.) * self.height_meas_scale
         self.measured_heights = heights = torch.zeros((self.num_envs,140),dtype=torch.float32).to(self.device)
-        if self.use_default_commands:
-            self.commands*=0
-            self.commands[:, 0] = 1
+        # if self.use_default_commands:
+        #     self.commands*=0
+        #     self.commands[:, 0] = 1
         self.obs_buf = torch.cat((self.base_lin_vel * self.lin_vel_scale,
                                   self.base_ang_vel * self.ang_vel_scale,
                                   self.projected_gravity,
@@ -337,9 +339,10 @@ class Wr3Terrain(VecTask):
         # orientation penalty
         rew_orient = torch.sum(torch.square(self.projected_gravity[:, :2]), dim=1) * self.rew_scales["orient"]
 
-        # base height penalty
-        rew_base_height = torch.square(self.root_states[:, 2] - 0.52) * self.rew_scales[
-            "base_height"]  # TODO add target base height to cfg
+        # # base height penalty
+        # scale 0
+        # rew_base_height = torch.square(self.root_states[:, 2] - 0.32) * self.rew_scales[
+        #     "base_height"]  # TODO add target base height to cfg
 
         # torque penalty
         rew_torque = torch.sum(torch.square(self.torques), dim=1) * self.rew_scales["torque"]
@@ -360,6 +363,9 @@ class Wr3Terrain(VecTask):
         rew_action_rate = torch.sum(torch.square(self.last_actions - self.actions), dim=1) * self.rew_scales[
             "action_rate"]
 
+
+
+
         # air time reward
         # contact = torch.norm(contact_forces[:, feet_indices, :], dim=2) > 1.
         contact = self.contact_forces[:, self.feet_indices, 2] > 1.
@@ -371,12 +377,16 @@ class Wr3Terrain(VecTask):
         self.feet_air_time *= ~contact
 
         # cosmetic penalty for hip motion
-        rew_hip = torch.sum(torch.abs(self.dof_pos[:, [0, 3, 6, 9]] - self.default_dof_pos[:, [0, 3, 6, 9]]), dim=1) * \
-                  self.rew_scales["hip"]
+        # scale 0
+        # rew_hip = torch.sum(torch.abs(self.dof_pos[:, [0, 3, 6, 9]] - self.default_dof_pos[:, [0, 3, 6, 9]]), dim=1) * \
+        #           self.rew_scales["hip"]
+
+        rew_pose = torch.sum(torch.square(self.dof_pos-self.default_dof_pos),dim=1)*self.rew_scales["pose"]
 
         # total reward
-        self.rew_buf = rew_lin_vel_xy + rew_ang_vel_z + rew_lin_vel_z + rew_ang_vel_xy + rew_orient + rew_base_height + \
-                       rew_torque + rew_joint_acc + rew_collision + rew_action_rate + rew_airTime + rew_hip + rew_stumble
+        self.rew_buf = rew_lin_vel_xy + rew_ang_vel_z + rew_lin_vel_z + rew_ang_vel_xy + rew_orient  + \
+                       rew_torque + rew_joint_acc + rew_collision + rew_action_rate + rew_airTime  + rew_stumble + \
+                       rew_pose
         self.rew_buf = torch.clip(self.rew_buf, min=0., max=None)
 
         # add termination reward
@@ -388,14 +398,15 @@ class Wr3Terrain(VecTask):
         self.episode_sums["lin_vel_z"] += rew_lin_vel_z
         self.episode_sums["ang_vel_xy"] += rew_ang_vel_xy
         self.episode_sums["orient"] += rew_orient
-        self.episode_sums["torques"] += rew_torque
+        self.episode_sums["torque"] += rew_torque
         self.episode_sums["joint_acc"] += rew_joint_acc
         self.episode_sums["collision"] += rew_collision
         self.episode_sums["stumble"] += rew_stumble
         self.episode_sums["action_rate"] += rew_action_rate
         self.episode_sums["air_time"] += rew_airTime
-        self.episode_sums["base_height"] += rew_base_height
-        self.episode_sums["hip"] += rew_hip
+        # self.episode_sums["base_height"] += rew_base_height
+        # self.episode_sums["hip"] += rew_hip
+        self.episode_sums["pose"] += rew_pose
 
     def reset_idx(self, env_ids):
         self.apply_randomizations(self.randomization_params)
@@ -433,6 +444,10 @@ class Wr3Terrain(VecTask):
                                                      (len(env_ids), 1), device=self.device).squeeze()
         self.commands[env_ids] *= (torch.norm(self.commands[env_ids, :2], dim=1) > 0.25).unsqueeze(
             1)  # set small commands to zero
+
+        if self.use_default_commands:
+            self.commands*=0
+            self.commands[:, 0] = 1
 
         self.last_actions[env_ids] = 0.
         self.last_dof_vel[env_ids] = 0.

@@ -89,8 +89,12 @@ env:
     kneeCollisionRewardScale: -0.25
     feetStumbleRewardScale: -0. #-2.0
     actionRateRewardScale: -0.01
+
     # cosmetics
     hipRewardScale: -0. #25
+
+    # pose constraints
+    poseRewardScale: -0.0005
 
     # normalization
     linearVelocityScale: 2.0
@@ -117,6 +121,9 @@ env:
 
     # episode length in seconds
     episodeLength_s: 20
+
+    #    # pose constraints
+    #    expectedBaseHeight: 0.35
 
   # viewer cam:
   viewer:
