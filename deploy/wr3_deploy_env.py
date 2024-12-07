@@ -86,7 +86,6 @@ class Wr3DeployEnv(BaseDeployEnv):
             if np.all(state_dict["dof_pos"]-self.default_dof_pos < 1e-3):
                 break
 
-
     def _control_thread(self):
         self._reset_robot()
         self.has_started.set()
@@ -103,8 +102,6 @@ class Wr3DeployEnv(BaseDeployEnv):
             rate.sleep()
             end = time.time()
             print("Control Thread Time: ", end - start)
-
-
 
     def _acquire_robot_state(self):
         odometer_data = self.receiver.get_odometer_data()

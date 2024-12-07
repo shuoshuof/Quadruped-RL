@@ -40,6 +40,7 @@ env:
     yaw: [-3.14, 3.14]    # min max [rad/s]
 
   control:
+    # TODO: set pd in different motors respectively
     # PD Drive parameters:
     stiffness: 80.0  # [N*m/rad]
     damping: 2.0     # [N*m*s/rad]
