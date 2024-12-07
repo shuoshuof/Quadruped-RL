@@ -29,6 +29,7 @@ class Wr3Terrain(VecTask):
         self.debug_viz = self.cfg["env"]["enableDebugVis"]
         self.init_done = False
 
+        self.randomize = self.cfg["task"]["randomize"]
         self.randomization_params = self.cfg["task"]["randomization_params"]
 
         # normalization
@@ -168,6 +169,8 @@ class Wr3Terrain(VecTask):
             self.custom_origins = True
         self._create_envs(self.num_envs, self.cfg["env"]['envSpacing'], int(np.sqrt(self.num_envs)))
 
+        if self.randomize:
+            self.apply_randomizations(self.randomization_params)
     def _get_noise_scale_vec(self, cfg):
         noise_vec = torch.zeros_like(self.obs_buf[0])
         self.add_noise = self.cfg["env"]["learn"]["addNoise"]
@@ -411,7 +414,8 @@ class Wr3Terrain(VecTask):
         self.episode_sums["pose"] += rew_pose
 
     def reset_idx(self, env_ids):
-        self.apply_randomizations(self.randomization_params)
+        if self.randomize:
+            self.apply_randomizations(self.randomization_params)
 
         # TODO: reset need to be clipped?
         positions_offset = torch_rand_float(0.5, 1.5, (len(env_ids), self.num_dof), device=self.device)
