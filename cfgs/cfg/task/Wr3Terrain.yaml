@@ -28,6 +28,71 @@ env:
     # tri mesh only:
     slopeTreshold: 0.5
 
+  terrainGenerator:
+    terrainType: trimesh # none, plane, or trimesh
+    staticFriction: 1.0  # [-]
+    dynamicFriction: 1.0  # [-]
+    restitution: 0.        # [-]
+    # rough terrain only:
+    curriculum: true
+    maxInitMapLevel: 0
+    mapLength: 8.
+    mapWidth: 8.
+    numLevels: 10
+    numTerrains: 20
+    # terrain types: [smooth slope, rough slope, stairs up, stairs down, discrete]
+    # tri mesh only:
+    slopeTreshold: 0.5
+
+    borderSize: 30
+
+    availableTerrains:
+      [
+         'randomUniformTerrain',
+#        'discreteObstaclesTerrain',
+        # 'waveTerrain',
+        # 'minStepTerrain',
+        # 'steppingStoneTerrain',
+#        'fractalNoiseTerrain',
+      ]
+
+    randomUniformTerrain:
+      min_height: 0
+      max_height: 0.01
+      step: 0.025
+      downsampled_scale: 0.2
+
+    discreteObstaclesTerrain:
+      max_height: 0.01
+      min_size: 1
+      max_size: 2
+      num_rects: 40
+      platform_size: 3.
+
+    waveTerrain:
+      num_waves: 10
+      amplitude: 0.01
+
+    minStepTerrain:
+      height: 0.03
+
+    steppingStoneTerrain:
+      stone_size: 0.1
+      stone_distance: 0.05
+      max_height: 0.01
+      platform_size: 0
+      depth: 0
+
+    fractalNoiseTerrain:
+      widthSamples: 80
+      lengthSamples: 80
+      frequency: 5
+      fractalOctaves: 2
+      fractalLacunarity: 2.0
+      fractalGain: 0.25
+      zScale: 0.01
+
+
   baseInitState:
     pos: [0.0, 0.0, 0.35] # x,y,z [m]
     rot: [0.0, 0.0, 0.0, 1.0] # x,y,z,w [quat]

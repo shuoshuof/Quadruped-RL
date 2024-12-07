@@ -16,7 +16,7 @@ from isaacgymenvs.utils.torch_jit_utils import to_torch, get_axis_params, torch_
     quat_rotate_inverse
 from isaacgymenvs.tasks.base.vec_task import VecTask
 
-from tasks.terrain.terrain_generator import Terrain, SimpleTerrain
+from tasks.terrain.terrain_generator import Terrain, SimpleTerrain,TerrainGenerator
 
 
 class Wr3Terrain(VecTask):
@@ -196,7 +196,7 @@ class Wr3Terrain(VecTask):
     def _create_trimesh(self):
         terrain_type = self.cfg["env"]["terrain"]["terrainType"]
         if terrain_type == 'simple':
-            self.terrain = SimpleTerrain(self.cfg["env"]["terrain"], num_robots=self.num_envs)
+            self.terrain = TerrainGenerator(self.cfg["env"]["terrainGenerator"], num_robots=self.num_envs)
         else:
             self.terrain = Terrain(self.cfg["env"]["terrain"], num_robots=self.num_envs)
         tm_params = gymapi.TriangleMeshParams()
@@ -367,9 +367,6 @@ class Wr3Terrain(VecTask):
         # action rate penalty
         rew_action_rate = torch.sum(torch.square(self.last_actions - self.actions), dim=1) * self.rew_scales[
             "action_rate"]
-
-
-
 
         # air time reward
         # contact = torch.norm(contact_forces[:, feet_indices, :], dim=2) > 1.
