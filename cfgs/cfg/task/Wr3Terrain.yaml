@@ -49,20 +49,22 @@ env:
     # decimation: Number of control action updates @ sim DT per policy DT
     decimation: 4
 
-  defaultJointAngles:  # = target angles when action = 0.0
+  defaultJointAngles: # = target angles when action = 0.0
+    # the order should match the order in actions
     FL_hip_joint: 0.0
-    FR_hip_joint: 0.0
-    RL_hip_joint: 0.0
-    RR_hip_joint: 0.0
-
     FL_thigh_joint: 0.85
-    FR_thigh_joint: 0.85
-    RL_thigh_joint: 0.85
-    RR_thigh_joint: 0.85
-
     FL_calf_joint: -1.8
+
+    FR_hip_joint: 0.0
+    FR_thigh_joint: 0.85
     FR_calf_joint: -1.8
+
+    RL_hip_joint: 0.0
+    RL_thigh_joint: 0.85
     RL_calf_joint: -1.8
+
+    RR_hip_joint: 0.0
+    RR_thigh_joint: 0.85
     RR_calf_joint: -1.8
 
   urdfAsset:
@@ -96,6 +98,7 @@ env:
     # pose constraints
     poseRewardScale: -0.0005
 
+    # TODO: may be need to be turned
     # normalization
     linearVelocityScale: 2.0
     angularVelocityScale: 0.25

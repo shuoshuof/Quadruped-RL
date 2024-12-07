@@ -9,6 +9,10 @@ from abc import ABC, abstractmethod
 import threading
 import copy
 
+import numpy as np
+
+import gym
+from gym import spaces
 import torch
 
 class BaseDeployEnv(ABC):
@@ -17,6 +21,9 @@ class BaseDeployEnv(ABC):
         self.num_envs = num_envs
         self.num_obs = num_obs
         self.num_actions = num_actions
+
+        self.act_space = spaces.Box(np.ones(self.num_actions) * -1., np.ones(self.num_actions) * 1.)
+        self.obs_space = spaces.Box(np.ones(self.num_obs) * -np.Inf, np.ones(self.num_obs) * np.Inf)
 
         self._allocate_buffers()
         self._init_thread_flags()
@@ -68,3 +75,13 @@ class BaseDeployEnv(ABC):
         obs_dict['obs'] = obs
 
         return obs_dict
+
+    @property
+    def observation_space(self) -> gym.Space:
+        """Get the environment's observation space."""
+        return self.obs_space
+
+    @property
+    def action_space(self) -> gym.Space:
+        """Get the environment's action space."""
+        return self.act_space

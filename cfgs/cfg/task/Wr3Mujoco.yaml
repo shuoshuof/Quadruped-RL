@@ -1,0 +1,7 @@
+defaults:
+  - Wr3Terrain.yaml
+
+name: Wr3Mujoco
+
+env:
+  numEnvs: 1

@@ -2,7 +2,7 @@
 """
 @Time ： 2024/12/4 19:10
 @Auth ： shuoshuof
-@File ：rl.py
+@File ：run_deploy.py
 @Project ：Quadruped-RL
 """
 import hydra
@@ -45,7 +45,7 @@ def preprocess_train_config(cfg, config_dict):
     return config_dict
 
 
-@hydra.main(version_base="1.1", config_name="config", config_path="cfgs/cfg_deploy")
+@hydra.main(version_base="1.1", config_name="config", config_path="cfgs/cfg")
 def launch_rlg_hydra(cfg: DictConfig):
     import logging
     import os
@@ -68,12 +68,6 @@ def launch_rlg_hydra(cfg: DictConfig):
     from isaacgymenvs.utils.wandb_utils import WandbAlgoObserver
     from rl_games.common import env_configurations, vecenv
     from rl_games.torch_runner import Runner
-    from rl_games.algos_torch import model_builder
-    from isaacgymenvs.learning import amp_continuous
-    from isaacgymenvs.learning import amp_players
-    from isaacgymenvs.learning import amp_models
-    from isaacgymenvs.learning import amp_network_builder
-    import isaacgymenvs
 
     time_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     run_name = f"{cfg.wandb_name}_{time_str}"
@@ -99,61 +93,16 @@ def launch_rlg_hydra(cfg: DictConfig):
     # sets seed. if seed is -1 will pick a random one
     cfg.seed = set_seed(cfg.seed, torch_deterministic=cfg.torch_deterministic, rank=global_rank)
 
-    def create_isaacgym_env(**kwargs):
-        envs = isaacgymenvs.make(
-            cfg.seed,
-            cfg.task_name,
-            cfg.task.env.numEnvs,
-            cfg.sim_device,
-            cfg.rl_device,
-            cfg.graphics_device_id,
-            cfg.headless,
-            cfg.multi_gpu,
-            cfg.capture_video,
-            cfg.force_render,
-            cfg,
-            **kwargs,
-        )
-        if cfg.capture_video:
-            envs.is_vector_env = True
-            envs = gym.wrappers.RecordVideo(
-                envs,
-                f"videos/{run_name}",
-                step_trigger=lambda step: step % cfg.capture_video_freq == 0,
-                video_length=cfg.capture_video_len,
-            )
-        return envs
+    def create_deploy_env(**kwargs):
+        from deploy.wr3_sim2sim_env import Wr3MujocoEnv
+        env = Wr3MujocoEnv(DictConfig(cfg.task))
+        return env
 
     env_configurations.register('rlgpu', {
         'vecenv_type': 'RLGPU',
-        'env_creator': lambda **kwargs: create_isaacgym_env(**kwargs),
+        'env_creator': lambda **kwargs: create_deploy_env(**kwargs),
     })
 
-    # whether to use dict observation
-    from tasks.anymal import Anymal
-    from tasks.wr3 import Wr3
-    from tasks.wr3_terrain import Wr3Terrain
-    isaacgym_task_map['Anymal'] = Anymal
-    isaacgym_task_map['Wr3'] = Wr3
-    isaacgym_task_map['Wr3Terrain'] = Wr3Terrain
-    ige_env_cls = isaacgym_task_map[cfg.task_name]
-    dict_cls = ige_env_cls.dict_obs_cls if hasattr(ige_env_cls, 'dict_obs_cls') and ige_env_cls.dict_obs_cls else False
-
-    if dict_cls:
-        obs_spec = {}
-        actor_net_cfg = cfg.train.params.network
-        obs_spec['obs'] = {'names': list(actor_net_cfg.inputs.keys()),
-                           'concat': not actor_net_cfg.name == "complex_net", 'space_name': 'observation_space'}
-        if "central_value_config" in cfg.train.params.config:
-            critic_net_cfg = cfg.train.params.config.central_value_config.network
-            obs_spec['states'] = {'names': list(critic_net_cfg.inputs.keys()),
-                                  'concat': not critic_net_cfg.name == "complex_net", 'space_name': 'state_space'}
-
-        vecenv.register('RLGPU',
-                        lambda config_name, num_actors, **kwargs: ComplexObsRLGPUEnv(config_name, num_actors, obs_spec,
-                                                                                     **kwargs))
-    else:
-        vecenv.register('RLGPU', lambda config_name, num_actors, **kwargs: RLGPUEnv(config_name, num_actors, **kwargs))
 
     rlg_config_dict = omegaconf_to_dict(cfg.train)
     rlg_config_dict = preprocess_train_config(cfg, rlg_config_dict)
@@ -175,11 +124,6 @@ def launch_rlg_hydra(cfg: DictConfig):
 
     def build_runner(algo_observer):
         runner = Runner(algo_observer)
-        # runner.algo_factory.register_builder('amp_continuous', lambda **kwargs: amp_continuous.AMPAgent(**kwargs))
-        # runner.player_factory.register_builder('amp_continuous',
-        #                                        lambda **kwargs: amp_players.AMPPlayerContinuous(**kwargs))
-        # model_builder.register_model('continuous_amp', lambda network, **kwargs: amp_models.ModelAMPContinuous(network))
-        # model_builder.register_network('amp', lambda **kwargs: amp_network_builder.AMPBuilder())
         from deploy.wr3_deployer import Wr3Deployer
         runner.player_factory.register_builder('deployer', lambda **kwargs: Wr3Deployer(**kwargs))
         return runner

@@ -22,12 +22,8 @@ import torch
 from deploy.base_deploy_env import BaseDeployEnv
 
 class Wr3MujocoEnv(BaseDeployEnv):
-    def __init__(self):
-        from hydra import core
-        core.global_hydra.GlobalHydra.instance().clear()
-        hydra.initialize(config_path='../cfgs/cfg_deploy/task/')
-        cfg = hydra.compose(config_name='Wr3Mujoco.yaml')
-        self.cfg = DictConfig(cfg)
+    def __init__(self,cfg):
+        self.cfg = cfg
 
         self.device = 'cuda:0'
 

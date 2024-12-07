@@ -100,15 +100,37 @@ class Wr3Deployer(PpoPlayerContinuous):
 
         need_init_rnn = self.is_rnn
 
-        from deploy.wr3_sim2sim_env import Wr3MujocoEnv
+        # from deploy.wr3_sim2sim_env import Wr3MujocoEnv
+        #
+        # mujoco_env = Wr3MujocoEnv()
+        #
+        # for _ in range(n_games):
+        #     if games_played >= n_games:
+        #         break
+        #
+        #     obses = self.env_reset(mujoco_env)
+        #
+        #     if need_init_rnn:
+        #         self.init_rnn()
+        #         need_init_rnn = False
+        #
+        #     rate = RateLimiter(frequency=60.0, warn=False)
+        #     import time
+        #     while True:
+        #         start = time.time()
+        #         action = self.get_action(obses, is_deterministic)
+        #
+        #         obses, r, done, info = self.env_step(mujoco_env, action)
+        #         rate.sleep()
+        #         end = time.time()
+        #         print(end - start)
 
-        mujoco_env = Wr3MujocoEnv()
 
         for _ in range(n_games):
             if games_played >= n_games:
                 break
 
-            obses = self.env_reset(mujoco_env)
+            obses = self.env_reset(self.env)
 
             if need_init_rnn:
                 self.init_rnn()
@@ -120,7 +142,7 @@ class Wr3Deployer(PpoPlayerContinuous):
                 start = time.time()
                 action = self.get_action(obses, is_deterministic)
 
-                obses, r, done, info = self.env_step(mujoco_env, action)
+                obses, r, done, info = self.env_step(self.env, action)
                 rate.sleep()
                 end = time.time()
                 print(end - start)

@@ -1,0 +1,6 @@
+defaults:
+  - Wr3TerrainPPO.yaml
+
+params:
+  algo:
+    name: deployer
