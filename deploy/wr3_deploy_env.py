@@ -82,8 +82,8 @@ class Wr3DeployEnv(BaseDeployEnv):
             self.update_state(state_dict)
 
             actions = torch.zeros((self.num_envs,self.num_actions),dtype=torch.float32,device=self.device)
-            self._apply_action_to_robot(actions,state_dict)
-            if np.all(state_dict["dof_pos"]-self.default_dof_pos < 1e-3):
+            self._apply_action_to_robot(actions, state_dict, clip_action=True, clip_action_threshold=0.1)
+            if np.all(state_dict["dof_pos"]-self.default_dof_pos < 1e-2):
                 break
 
     def _control_thread(self):
@@ -143,12 +143,14 @@ class Wr3DeployEnv(BaseDeployEnv):
 
         return state_dict
 
-    def _apply_action_to_robot(self, actions,state_dict):
+    def _apply_action_to_robot(self, actions, state_dict, clip_action=False, clip_action_threshold=0.1):
         dof_vel = state_dict['dof_vel']
         dof_pos = state_dict['dof_pos']
         actions = actions.squeeze(0).cpu().numpy()
         target_dof_pos = self.action_scale * actions + self.default_dof_pos
         # TODO: add protection for out of bound
+        if clip_action:
+            target_dof_pos = np.clip(target_dof_pos, dof_pos - clip_action_threshold, dof_pos + clip_action_threshold)
         # TODO: motor order may be different with the sim
         for i in range(self.num_dofs):
             self.motor_cmd.cmd[i].pos = target_dof_pos[i]
@@ -206,7 +208,25 @@ def wrap_to_pi(angles):
 
 
 if __name__ == '__main__':
-    pass
+    env = Wr3DeployEnv()
+
+    from deploy.wr3_sim2sim_env import Wr3MujocoEnv
+    cfg = OmegaConf.load('../cfgs/cfg_deploy/task/Wr3Mujoco.yaml')
+    robot_start_poses, robot_base_state, run_sim_thread = None, None, False
+    mujoco_env = Wr3MujocoEnv(cfg, robot_start_poses, robot_base_state, run_sim_thread)
+
+    for _ in range(1000):
+        state_dict = env.get_state()
+        if "base_pos" is not state_dict.keys():
+            state_dict["base_pos"] = np.array([0., 0., 0.5], dtype=np.float32)
+        mujoco_env._apply_state_in_mujoco(state_dict)
+
+
+
+    
+
+
+
 
 
 

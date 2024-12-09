@@ -22,7 +22,7 @@ import torch
 from deploy.base_deploy_env import BaseDeployEnv
 
 class Wr3MujocoEnv(BaseDeployEnv):
-    def __init__(self,cfg):
+    def __init__(self, cfg, robot_start_poses=None, robot_base_state=None, run_sim_thread=True) -> None:
         self.cfg = cfg
 
         self.device = 'cuda:0'
@@ -60,8 +60,11 @@ class Wr3MujocoEnv(BaseDeployEnv):
         self._init_sim()
         self._launch_viewer()
 
-        sim_thread = threading.Thread(target=self._run_sim_thread)
-        sim_thread.start()
+        self.robot_start_poses = robot_start_poses if (robot_start_poses is not None) else self.cfg["env"]["defaultJointAngles"]
+        self.robot_base_state = robot_base_state if (robot_base_state is not None) else self.cfg["env"]['baseInitState']
+        if run_sim_thread:
+            sim_thread = threading.Thread(target=self._run_sim_thread)
+            sim_thread.start()
 
     def _init_sim(self):
         self.scene = mujoco.MjModel.from_xml_path(self.scene_path)
@@ -74,16 +77,11 @@ class Wr3MujocoEnv(BaseDeployEnv):
         self.viewer.cam.elevation = -90
         self.viewer.cam.azimuth = 0
 
-    def _reset_robot(self):
-        # initialize the robot with start pose
-        robot_start_poses = self.cfg["env"]["defaultJointAngles"]
-
+    def _reset_robot(self, robot_start_poses, robot_base_state):
         for idx,(joint_name, joint_angle) in enumerate(robot_start_poses.items()):
             joint_idx = mujoco.mj_name2id(self.scene, mujoco.mjtObj.mjOBJ_JOINT, joint_name)
             self.mj_data.qpos[6+joint_idx] = joint_angle
             self.default_dof_pos[idx] = joint_angle
-
-        robot_base_state = self.cfg["env"]['baseInitState']
 
         self.mj_data.qpos[:3] = np.array(robot_base_state['pos'],dtype=np.float32)
         self.mj_data.qvel[3:7] = np.array(robot_base_state['rot'],dtype=np.float32)[[1, 2, 3, 0]]
@@ -100,7 +98,7 @@ class Wr3MujocoEnv(BaseDeployEnv):
         self.update_state(state_dict)
 
     def _run_sim_thread(self):
-        self._reset_robot()
+        self._reset_robot(self.robot_start_poses, self.robot_base_state)
         self.has_started.set()
 
         rate = RateLimiter(frequency=200.0, warn=False)
@@ -193,6 +191,19 @@ class Wr3MujocoEnv(BaseDeployEnv):
         assert self.mj_data.ctrl.shape == (12,)
         assert torques_clipped.shape == (12,)
         self.mj_data.ctrl[:12] = torques_clipped
+
+    
+    def _apply_state_in_mujoco(self, state_dict):
+        # state_dict: root_por, root_rot, root_vLinear, root_vAngular, dof_pos [dict], dof_vel
+        robot_base_state = {"pos": state_dict["base_pos"], "rot": state_dict["base_quat"], "vLinear": state_dict["base_lin_vel"], "vAngular": state_dict["base_ang_vel"]}
+        dof_keys = ["FL_hip_joint", "FL_thigh_joint", "FL_calf_joint", 
+                    "FR_hip_joint", "FR_thigh_joint", "FR_calf_joint", 
+                    "BL_hip_joint", "BL_thigh_joint", "BL_calf_joint", 
+                    "BR_hip_joint", "BR_thigh_joint", "BR_calf_joint"]
+        robot_start_poses = {dof_keys[i]: state_dict["dof_pos"][i] for i in range(12)}
+        self._reset_robot(robot_start_poses, robot_base_state)
+        self.viewer.sync()
+
 
 
 
