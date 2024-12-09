@@ -16,7 +16,7 @@ from isaacgymenvs.utils.torch_jit_utils import to_torch, get_axis_params, torch_
     quat_rotate_inverse
 from isaacgymenvs.tasks.base.vec_task import VecTask
 
-from tasks.terrain.terrain_generator import Terrain, SimpleTerrain,TerrainGenerator
+from tasks.terrain.terrain_generator import Terrain,TerrainGenerator
 
 
 class Wr3Terrain(VecTask):
@@ -50,7 +50,7 @@ class Wr3Terrain(VecTask):
         self.rew_scales["orient"] = self.cfg["env"]["learn"]["orientationRewardScale"]
         self.rew_scales["torque"] = self.cfg["env"]["learn"]["torqueRewardScale"]
         self.rew_scales["joint_acc"] = self.cfg["env"]["learn"]["jointAccRewardScale"]
-        # self.rew_scales["base_height"] = self.cfg["env"]["learn"]["baseHeightRewardScale"]
+        self.rew_scales["height"] = self.cfg["env"]["learn"]["heightRewardScale"]
         self.rew_scales["air_time"] = self.cfg["env"]["learn"]["feetAirTimeRewardScale"]
         self.rew_scales["collision"] = self.cfg["env"]["learn"]["kneeCollisionRewardScale"]
         self.rew_scales["stumble"] = self.cfg["env"]["learn"]["feetStumbleRewardScale"]
@@ -329,6 +329,14 @@ class Wr3Terrain(VecTask):
                                   heights,
                                   self.actions
                                   ), dim=-1)
+    def cal_heights_reward(self):
+        # TODO: use self.measured_heights
+        heights = self.get_heights()
+        heights = heights.reshape(self.num_envs, 14, 10)
+        selected_heights = 4 * self.root_states[:, 2] - \
+                            (heights[...,6,4] + heights[...,6,5] + heights[...,7,4] + heights[...,7,5])
+        rew_height = selected_heights*self.rew_scales["height"]
+        return rew_height
 
     def compute_reward(self):
         # velocity tracking reward
@@ -373,9 +381,9 @@ class Wr3Terrain(VecTask):
         contact = self.contact_forces[:, self.feet_indices, 2] > 1.
         first_contact = (self.feet_air_time > 0.) * contact
         self.feet_air_time += self.dt
-        rew_airTime = torch.sum((self.feet_air_time - 0.5) * first_contact, dim=1) * self.rew_scales[
+        rew_air_time = torch.sum((self.feet_air_time - 0.5) * first_contact, dim=1) * self.rew_scales[
             "air_time"]  # reward only on first contact with the ground
-        rew_airTime *= torch.norm(self.commands[:, :2], dim=1) > 0.1  # no reward for zero command
+        rew_air_time *= torch.norm(self.commands[:, :2], dim=1) > 0.1  # no reward for zero command
         self.feet_air_time *= ~contact
 
         # cosmetic penalty for hip motion
@@ -383,32 +391,25 @@ class Wr3Terrain(VecTask):
         # rew_hip = torch.sum(torch.abs(self.dof_pos[:, [0, 3, 6, 9]] - self.default_dof_pos[:, [0, 3, 6, 9]]), dim=1) * \
         #           self.rew_scales["hip"]
 
-        rew_pose = torch.sum(torch.abs(self.dof_pos-self.default_dof_pos),dim=-1)*self.rew_scales["pose"]
+        rew_pose = torch.sum(torch.abs(self.dof_pos[:, [0, 3, 6, 9]] - self.default_dof_pos[:, [0, 3, 6, 9]]), dim=1) * \
+                   self.rew_scales["pose"]
+
+        rew_height = self.cal_heights_reward()
 
         # total reward
-        self.rew_buf = rew_lin_vel_xy + rew_ang_vel_z + rew_lin_vel_z + rew_ang_vel_xy + rew_orient  + \
-                       rew_torque + rew_joint_acc + rew_collision + rew_action_rate + rew_airTime  + rew_stumble + \
-                       rew_pose
+        self.rew_buf = rew_lin_vel_xy + rew_lin_vel_z + rew_ang_vel_xy + rew_ang_vel_z + rew_orient  + \
+                       rew_torque + rew_joint_acc + rew_collision + rew_action_rate + rew_air_time  + rew_stumble + \
+                       rew_pose + rew_height
         self.rew_buf = torch.clip(self.rew_buf, min=0., max=None)
 
         # add termination reward
         self.rew_buf += self.rew_scales["termination"] * self.reset_buf * ~self.timeout_buf
 
-        # log episode reward sums
-        self.episode_sums["lin_vel_xy"] += rew_lin_vel_xy
-        self.episode_sums["ang_vel_z"] += rew_ang_vel_z
-        self.episode_sums["lin_vel_z"] += rew_lin_vel_z
-        self.episode_sums["ang_vel_xy"] += rew_ang_vel_xy
-        self.episode_sums["orient"] += rew_orient
-        self.episode_sums["torque"] += rew_torque
-        self.episode_sums["joint_acc"] += rew_joint_acc
-        self.episode_sums["collision"] += rew_collision
-        self.episode_sums["stumble"] += rew_stumble
-        self.episode_sums["action_rate"] += rew_action_rate
-        self.episode_sums["air_time"] += rew_airTime
-        # self.episode_sums["base_height"] += rew_base_height
-        # self.episode_sums["hip"] += rew_hip
-        self.episode_sums["pose"] += rew_pose
+        local_vars = locals()
+        for var_name, value in local_vars.items():
+            if var_name.startswith("rew_"):
+                key = var_name[4:]
+                self.episode_sums[key] += value
 
     def reset_idx(self, env_ids):
         if self.randomize:
@@ -521,7 +522,7 @@ class Wr3Terrain(VecTask):
         env_ids = self.reset_buf.nonzero(as_tuple=False).flatten()
         if len(env_ids) > 0:
             self.reset_idx(env_ids)
-
+        # TODO: base_lin_vel, base_lin_vel, base_ang_vel should be cal again???
         self.compute_observations()
         if self.add_noise:
             self.obs_buf += (2 * torch.rand_like(self.obs_buf) - 1) * self.noise_scale_vec
@@ -534,17 +535,24 @@ class Wr3Terrain(VecTask):
             self.gym.clear_lines(self.viewer)
             self.gym.refresh_rigid_body_state_tensor(self.sim)
             sphere_geom = gymutil.WireframeSphereGeometry(0.02, 4, 4, None, color=(1, 1, 0))
+            sphere_geom_rew = gymutil.WireframeSphereGeometry(0.1, 4, 4, None, color=(1, 0, 0))
             for i in range(self.num_envs):
                 base_pos = (self.root_states[i, :3]).cpu().numpy()
                 heights = self.measured_heights[i].cpu().numpy()
                 height_points = quat_apply_yaw(self.base_quat[i].repeat(heights.shape[0]),
                                                self.height_points[i]).cpu().numpy()
-                for j in range(heights.shape[0]):
-                    x = height_points[j, 0] + base_pos[0]
-                    y = height_points[j, 1] + base_pos[1]
-                    z = heights[j]
-                    sphere_pose = gymapi.Transform(gymapi.Vec3(x, y, z), r=None)
-                    gymutil.draw_lines(sphere_geom, self.gym, self.viewer, self.envs[i], sphere_pose)
+                height_points = height_points.reshape(14, 10, -1)
+                for x_idx in range(height_points.shape[0]):
+                    for y_idx in range(height_points.shape[1]):
+                        heights = heights.reshape(14, 10)
+                        x =  height_points[x_idx,y_idx,0] + base_pos[0]
+                        y =  height_points[x_idx,y_idx,1] + base_pos[1]
+                        z = heights[x_idx,y_idx]
+                        sphere_pose = gymapi.Transform(gymapi.Vec3(x, y, z), r=None)
+                        if x_idx in [6,7] and y_idx in [4,5]:
+                            gymutil.draw_lines(sphere_geom_rew, self.gym, self.viewer, self.envs[i], sphere_pose)
+                        else:
+                            gymutil.draw_lines(sphere_geom, self.gym, self.viewer, self.envs[i], sphere_pose)
 
     def init_height_points(self):
         # 1mx1.6m rectangle (without center line)

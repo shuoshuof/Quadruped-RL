@@ -53,7 +53,7 @@ env:
         # 'waveTerrain',
         # 'minStepTerrain',
         # 'steppingStoneTerrain',
-#        'fractalNoiseTerrain',
+        'fractalNoiseTerrain',
       ]
 
     randomUniformTerrain:
@@ -151,7 +151,7 @@ env:
     orientationRewardScale: -0. #-1.
     torqueRewardScale: -0.00002 # -0.000025
     jointAccRewardScale: -0.0005 # -0.0025
-    baseHeightRewardScale: -0.0 #5
+    heightRewardScale: 0.0001 #5
     feetAirTimeRewardScale:  1.0
     kneeCollisionRewardScale: -0.25
     feetStumbleRewardScale: -0. #-2.0
