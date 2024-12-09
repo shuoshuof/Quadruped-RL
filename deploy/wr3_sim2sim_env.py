@@ -62,6 +62,7 @@ class Wr3MujocoEnv(BaseDeployEnv):
 
         self.robot_start_poses = robot_start_poses if (robot_start_poses is not None) else self.cfg["env"]["defaultJointAngles"]
         self.robot_base_state = robot_base_state if (robot_base_state is not None) else self.cfg["env"]['baseInitState']
+
         if run_sim_thread:
             sim_thread = threading.Thread(target=self._run_sim_thread)
             sim_thread.start()
@@ -84,9 +85,9 @@ class Wr3MujocoEnv(BaseDeployEnv):
             self.default_dof_pos[idx] = joint_angle
 
         self.mj_data.qpos[:3] = np.array(robot_base_state['pos'],dtype=np.float32)
-        self.mj_data.qvel[3:7] = np.array(robot_base_state['rot'],dtype=np.float32)[[1, 2, 3, 0]]
-        self.mj_data.qvel[:3] = np.array(robot_base_state['vLinear'],dtype=np.float32)
-        self.mj_data.qvel[3:6] = np.array(robot_base_state['vAngular'],dtype=np.float32)
+        self.mj_data.qpos[3:7] = np.array(robot_base_state['base_quat'],dtype=np.float32)[[3,0,1,2]]
+        self.mj_data.qvel[:3] = np.array(robot_base_state['base_lin_vel'],dtype=np.float32)
+        self.mj_data.qvel[3:6] = np.array(robot_base_state['base_ang_vel'],dtype=np.float32)
 
         self.mj_data.qvel = 0.
         self.mj_data.ctrl = 0.
@@ -194,15 +195,13 @@ class Wr3MujocoEnv(BaseDeployEnv):
 
     
     def _apply_state_in_mujoco(self, state_dict):
-        # state_dict: root_por, root_rot, root_vLinear, root_vAngular, dof_pos [dict], dof_vel
-        robot_base_state = {"pos": state_dict["base_pos"], "rot": state_dict["base_quat"], "vLinear": state_dict["base_lin_vel"], "vAngular": state_dict["base_ang_vel"]}
+        robot_base_state = {"pos": state_dict["base_pos"], "base_quat": state_dict["base_quat"], "base_lin_vel": state_dict["base_lin_vel"], "base_ang_vel": state_dict["base_ang_vel"]}
         dof_keys = ["FL_hip_joint", "FL_thigh_joint", "FL_calf_joint", 
                     "FR_hip_joint", "FR_thigh_joint", "FR_calf_joint", 
-                    "BL_hip_joint", "BL_thigh_joint", "BL_calf_joint", 
-                    "BR_hip_joint", "BR_thigh_joint", "BR_calf_joint"]
+                    "RL_hip_joint", "RL_thigh_joint", "RL_calf_joint",
+                    "RR_hip_joint", "RR_thigh_joint", "RR_calf_joint"]
         robot_start_poses = {dof_keys[i]: state_dict["dof_pos"][i] for i in range(12)}
         self._reset_robot(robot_start_poses, robot_base_state)
-        self.viewer.sync()
 
 
 
@@ -214,7 +213,11 @@ def wrap_to_pi(angles):
     return angles
 
 if __name__ == "__main__":
-    env = Wr3MujocoEnv()
+    from hydra import core
+    core.global_hydra.GlobalHydra.instance().clear()
+    hydra.initialize(config_path='../cfgs/cfg/task/')
+    cfg = hydra.compose(config_name='Wr3Mujoco.yaml')
+    env = Wr3MujocoEnv(cfg,run_sim_thread=True)
     i=0
     while True:
         i+=1

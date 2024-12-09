@@ -5,3 +5,8 @@ name: Wr3Mujoco
 
 env:
   numEnvs: 1
+
+  control:
+    # PD Drive parameters:
+    stiffness: 80.  # [N*m/rad]
+    damping: 2.     # [N*m*s/rad]

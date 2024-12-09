@@ -64,7 +64,7 @@ class BaseDeployEnv(ABC):
                 torch.tensor([False],dtype=torch.bool,device=self.device),
                 {})
     @abstractmethod
-    def _reset_robot(self):
+    def _reset_robot(self,*args,**kwargs):
         raise NotImplementedError
     def reset(self):
         self._reset_robot()
