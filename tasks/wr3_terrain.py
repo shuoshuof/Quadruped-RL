@@ -81,8 +81,11 @@ class Wr3Terrain(VecTask):
         self.max_episode_length = int(self.max_episode_length_s / self.dt + 0.5)
         self.push_interval = int(self.cfg["env"]["learn"]["pushInterval_s"] / self.dt + 0.5)
         self.allow_knee_contacts = self.cfg["env"]["learn"]["allowKneeContacts"]
-        self.Kp = self.cfg["env"]["control"]["stiffness"]
-        self.Kd = self.cfg["env"]["control"]["damping"]
+        # # self.Kp = self.cfg["env"]["control"]["stiffness"]
+        # # self.Kd = self.cfg["env"]["control"]["damping"]
+        self.Kp = torch.full((cfg["env"]["numEnvs"], cfg["env"]["numActions"]), self.cfg["env"]["control"]["stiffness"],dtype=torch.float32,device='cuda:0')
+        self.Kd = torch.full((cfg["env"]["numEnvs"], cfg["env"]["numActions"]), self.cfg["env"]["control"]["damping"],dtype=torch.float32,device='cuda:0')
+
         self.curriculum = self.cfg["env"]["terrain"]["curriculum"]
 
         for key in self.rew_scales.keys():
@@ -595,8 +598,20 @@ class Wr3Terrain(VecTask):
 
         return heights.view(self.num_envs, -1) * self.terrain.vertical_scale
 
+    def apply_randomizations(self, dr_params):
+        super().apply_randomizations(dr_params)
+        if hasattr(self,"randomize_buf"):
+            rand_envs = torch.nonzero(torch.eq(self.randomize_buf, 0), as_tuple=False).squeeze(-1).tolist()
+        else:
+            rand_envs = torch.arange(self.num_envs, device=self.device)
+        default_Kp = torch.full((self.num_envs, self.num_dof, ), self.cfg["env"]["control"]["stiffness"],dtype=torch.float32,device=self.device)
+        default_Kd = torch.full((self.num_envs, self.num_dof, ), self.cfg["env"]["control"]["damping"],dtype=torch.float32,device=self.device)
 
-
+        if len(rand_envs) > 0:
+            self.Kp[rand_envs] = default_Kp * \
+                                 to_torch(np.random.uniform(0.5, 1.5, size=(len(rand_envs), self.num_dof)))
+            self.Kd[rand_envs] = default_Kd * \
+                                 to_torch(np.random.uniform(0.5, 1.5, size=(len(rand_envs),self.num_dof)))
 
 
 @torch.jit.script
