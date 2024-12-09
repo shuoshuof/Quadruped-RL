@@ -68,15 +68,20 @@ class Wr3DeployEnv(BaseDeployEnv):
     def _init_SDK(self):
         self.receiver = DataReceiver()
         self.motor_cmd = MotorCmdDataHandler(num_motors=12, header1=0x57, header2=0x4C, sequence=0, data_type=0x01)
-        self.real2sim_dof_map = [4, 5, 3,
-                                 1, 2, 0,
-                                 10, 11, 9,
-                                 7, 8, 6]
+        # h-thigh a-hip k-calf
+        self.real2sim_dof_map= [
+            3,4,5,
+            0,1,2,
+            9,10,11,
+            6,7,8,
+        ]
 
-        self.sim2real_dof_map = [5, 3, 4,
-                                 2, 0, 1,
-                                 11, 9, 10,
-                                 8, 6, 7]
+        self.sim2real_dof_map= [
+            3,4,5,
+            0,1,2,
+            9,10,11,
+            6,7,8,
+        ]
 
         # TODO: motor order may be different with the sim
         for i in range(self.num_dofs):
