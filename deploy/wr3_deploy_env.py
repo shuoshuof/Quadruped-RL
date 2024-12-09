@@ -25,12 +25,8 @@ from deploy.robot_communication import DataReceiver, MotorCmdDataHandler
 
 class Wr3DeployEnv(BaseDeployEnv):
 
-    def __init__(self) -> None:
-        from hydra import core
-        core.global_hydra.GlobalHydra.instance().clear()
-        hydra.initialize(config_path='../cfgs/cfg_deploy/task/')
-        cfg = hydra.compose(config_name='Wr3Mujoco.yaml')
-        self.cfg = DictConfig(cfg)
+    def __init__(self,cfg) -> None:
+        self.cfg = cfg
 
         self.device = 'cuda:0'
 
