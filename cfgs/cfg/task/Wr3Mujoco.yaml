@@ -3,6 +3,10 @@ defaults:
 
 name: Wr3Mujoco
 
+record:
+  record_video: False
+  video_save_path: './runs/record.mp4'
+
 env:
   numEnvs: 1
 

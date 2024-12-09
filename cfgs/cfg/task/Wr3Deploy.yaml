@@ -4,6 +4,7 @@ defaults:
 name: Wr3Deploy
 
 env:
+  numEnvs: 1
   control:
     # PD Drive parameters:
     stiffness: 0.  # [N*m/rad]
