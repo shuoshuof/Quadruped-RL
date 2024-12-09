@@ -1,0 +1,10 @@
+defaults:
+  - Wr3Terrain.yaml
+
+name: Wr3Deploy
+
+env:
+  control:
+    # PD Drive parameters:
+    stiffness: 0.  # [N*m/rad]
+    damping: 0.     # [N*m*s/rad]
