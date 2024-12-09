@@ -43,11 +43,11 @@ class Wr3MujocoEnv(BaseDeployEnv):
         self.gravity_vec = torch.tensor([0., 0., -1.],dtype=torch.float32,device=self.device)
         self.forward_vec = torch.tensor([1., 0., 0.], dtype=torch.float32,device=self.device).repeat((self.num_envs, 1))
 
-        # x vel, y vel, yaw vel, heading
-        self.commands = torch.zeros((self.num_envs,4),dtype=torch.float32,device=self.device)
-        self.commands[:,0] = 1.
         self.commands_scale = torch.tensor([self.lin_vel_scale, self.lin_vel_scale, self.ang_vel_scale],device=self.device)
         self.use_default_commands = self.cfg["env"]["useDefaultCommands"]
+
+        if self.use_default_commands:
+            self.commands[:, 0] = 1
         # control
         self.default_dof_pos = np.zeros(self.num_dofs, dtype=np.float32)
         self.Kp = self.cfg["env"]["control"]["stiffness"]
@@ -65,6 +65,7 @@ class Wr3MujocoEnv(BaseDeployEnv):
 
         if run_sim_thread:
             sim_thread = threading.Thread(target=self._run_sim_thread)
+            sim_thread.setDaemon(True)
             sim_thread.start()
 
     def _init_sim(self):
@@ -117,7 +118,7 @@ class Wr3MujocoEnv(BaseDeployEnv):
             self.viewer.sync()
             rate.sleep()
             end = time.time()
-            print('Simulation step took {} seconds'.format(end - start))
+            # print('Simulation step took {} seconds'.format(end - start))
 
 
     def _acquire_mujoco_state(self):
@@ -168,10 +169,6 @@ class Wr3MujocoEnv(BaseDeployEnv):
 
         action = self.get_action()
 
-        if self.use_default_commands:
-            self.commands*=0
-            self.commands[:, 0] = 1
-
         obs_tensor = torch.concatenate([
             base_lin_vel*self.lin_vel_scale,
             base_ang_vel*self.ang_vel_scale,
@@ -182,7 +179,6 @@ class Wr3MujocoEnv(BaseDeployEnv):
             heights.unsqueeze(0),
             action,
         ],dim=-1)
-
         assert obs_tensor.shape == (self.num_envs,self.num_obs)
         return obs_tensor
 

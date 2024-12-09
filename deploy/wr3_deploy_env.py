@@ -48,8 +48,7 @@ class Wr3DeployEnv(BaseDeployEnv):
             (self.num_envs, 1))
 
         # x vel, y vel, yaw vel, heading
-        self.commands = torch.zeros((self.num_envs, 4), dtype=torch.float32, device=self.device)
-        self.commands[:, 0] = 1.
+
         self.commands_scale = torch.tensor([self.lin_vel_scale, self.lin_vel_scale, self.ang_vel_scale],
                                            device=self.device)
         self.use_default_commands = self.cfg["env"]["useDefaultCommands"]
@@ -232,7 +231,7 @@ if __name__ == '__main__':
     hydra.initialize(config_path='../cfgs/cfg/task/')
     cfg = hydra.compose(config_name='Wr3Mujoco.yaml')
 
-    deploy_env = Wr3DeployEnv(cfg)
+    deploy_env = Wr3DeployEnv(cfg,run_control_thread=False)
     mujoco_env = Wr3MujocoEnv(
         cfg,
         run_sim_thread=False

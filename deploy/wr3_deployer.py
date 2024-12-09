@@ -55,7 +55,7 @@ class Wr3Deployer(PpoPlayerContinuous):
                 obses, r, done, info = self.env_step(self.env, action)
                 rate.sleep()
                 end = time.time()
-                print(end - start)
+                # print(end - start)
 
 
 

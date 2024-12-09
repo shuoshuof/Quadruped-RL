@@ -28,6 +28,12 @@ class BaseDeployEnv(ABC):
         self._allocate_buffers()
         self._init_thread_flags()
 
+        self.commands = torch.zeros((self.num_envs, 4), dtype=torch.float32, device=self.device)
+
+        command_thread = threading.Thread(target=self._run_command_thread)
+        command_thread.setDaemon(True)
+        command_thread.start()
+
     def _init_thread_flags(self):
         self.state_lock = threading.Lock()
         self.obs_lock = threading.Lock()
@@ -37,6 +43,35 @@ class BaseDeployEnv(ABC):
         self.obs_buf = torch.zeros((self.num_envs,self.num_obs),device=self.device,dtype=torch.float32)
         self.action_buf = torch.zeros((self.num_envs,self.num_actions),device=self.device,dtype=torch.float32)
         self.state_dict = {}
+    def _run_command_thread(self):
+        from pynput import keyboard
+        pressed_keys = set()
+        def on_press(key):
+            self.commands*=0.
+            print(self.commands)
+            try:
+                if key==keyboard.Key.up:
+                    self.commands[:,0]=1
+                if key==keyboard.Key.down:
+                    self.commands[:,0]=-1
+                if key==keyboard.Key.left:
+                    self.commands[:,1]=1
+                if key==keyboard.Key.right:
+                    self.commands[:,1]=-1
+                if key.char=='q':
+                    self.commands[:,2]=1
+                if key.char=='e':
+                    self.commands[:,2]=-1
+            except AttributeError:
+                pressed_keys.add(key)
+                print(f'Special keys currently pressed: {pressed_keys}')
+
+        def on_release(key):
+            if key == keyboard.Key.esc:
+                return False
+
+        with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
+            listener.join()
     @abstractmethod
     def get_obs(self):
         raise NotImplementedError
