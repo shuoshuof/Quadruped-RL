@@ -16,11 +16,12 @@ from gym import spaces
 import torch
 
 class BaseDeployEnv(ABC):
-    def __init__(self,num_envs,num_obs, num_actions,device="cuda:0"):
+    def __init__(self,cfg,device="cuda:0"):
+        self.cfg = cfg
         self.device = device
-        self.num_envs = num_envs
-        self.num_obs = num_obs
-        self.num_actions = num_actions
+        self.num_envs = self.cfg["env"]['numEnvs']
+        self.num_obs = self.cfg["env"]['numObservations']
+        self.num_actions = self.cfg["env"]['numActions']
 
         self.act_space = spaces.Box(np.ones(self.num_actions) * -1., np.ones(self.num_actions) * 1.)
         self.obs_space = spaces.Box(np.ones(self.num_obs) * -np.Inf, np.ones(self.num_obs) * np.Inf)

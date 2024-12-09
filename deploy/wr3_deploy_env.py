@@ -26,15 +26,9 @@ from deploy.robot_communication import DataReceiver, MotorCmdDataHandler
 class Wr3DeployEnv(BaseDeployEnv):
 
     def __init__(self, cfg, run_control_thread=True) -> None:
-        self.cfg = cfg
-
         self.device = 'cuda:0'
 
-        num_envs = self.cfg["env"]['numEnvs']
-        num_obs = self.cfg["env"]['numObservations']
-        num_actions = self.cfg["env"]['numActions']
-
-        super().__init__(num_envs=num_envs, num_obs=num_obs, num_actions=num_actions)
+        super().__init__(cfg)
 
         self.num_dofs = self.num_actions
 

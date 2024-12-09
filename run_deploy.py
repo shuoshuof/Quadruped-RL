@@ -95,7 +95,11 @@ def launch_rlg_hydra(cfg: DictConfig):
 
     def create_deploy_env(**kwargs):
         from deploy.wr3_sim2sim_env import Wr3MujocoEnv
-        env = Wr3MujocoEnv(DictConfig(cfg.task))
+        from deploy.wr3_deploy_env import Wr3DeployEnv
+        if cfg.task.name=="Wr3Mujoco":
+            env = Wr3MujocoEnv(DictConfig(cfg.task))
+        if cfg.task.name=="Wr3Deploy":
+            env = Wr3DeployEnv(DictConfig(cfg.task))
         return env
 
     env_configurations.register('rlgpu', {
