@@ -293,6 +293,20 @@ class Wr3Terrain(VecTask):
                 rigid_shape_prop[s].friction = friction_buckets[i % num_buckets]
             self.gym.set_asset_rigid_shape_properties(anymal_asset, rigid_shape_prop)
             anymal_handle = self.gym.create_actor(env_handle, anymal_asset, start_pose, "wr3", i, 0, 0)
+
+            if self.randomize:
+                body_props = self.gym.get_actor_rigid_body_properties(env_handle, anymal_handle)
+                base_idx = 0
+                rng_mass = [-2, 2]
+                rand_mass = np.random.uniform(rng_mass[0], rng_mass[1], size=(1,))
+                body_props[base_idx].mass += rand_mass
+
+                rng_com = [-0.10, 0.10]
+                rand_com = np.random.uniform(rng_com[0], rng_com[1], size=(3,))
+                body_props[base_idx].com += gymapi.Vec3(*rand_com)
+
+                self.gym.set_actor_rigid_body_properties(env_handle, anymal_handle, body_props, recomputeInertia=True)
+
             self.gym.set_actor_dof_properties(env_handle, anymal_handle, dof_props)
             self.envs.append(env_handle)
             self.anymal_handles.append(anymal_handle)
