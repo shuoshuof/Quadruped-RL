@@ -78,16 +78,19 @@ class Wr3MujocoEnv(BaseDeployEnv):
         self.viewer.cam.elevation = -90
         self.viewer.cam.azimuth = 0
 
-    def _reset_robot(self, robot_start_poses, robot_base_state):
+    def _reset_robot(self, robot_start_poses=None, robot_base_state=None):
+        if robot_start_poses is None:
+            robot_start_poses = self.robot_start_poses
         for idx,(joint_name, joint_angle) in enumerate(robot_start_poses.items()):
             joint_idx = mujoco.mj_name2id(self.scene, mujoco.mjtObj.mjOBJ_JOINT, joint_name)
             self.mj_data.qpos[6+joint_idx] = joint_angle
             self.default_dof_pos[idx] = joint_angle
-
+        if robot_base_state is None:
+            robot_base_state = self.robot_base_state
         self.mj_data.qpos[:3] = np.array(robot_base_state['pos'],dtype=np.float32)
-        self.mj_data.qpos[3:7] = np.array(robot_base_state['base_quat'],dtype=np.float32)[[3,0,1,2]]
-        self.mj_data.qvel[:3] = np.array(robot_base_state['base_lin_vel'],dtype=np.float32)
-        self.mj_data.qvel[3:6] = np.array(robot_base_state['base_ang_vel'],dtype=np.float32)
+        self.mj_data.qpos[3:7] = np.array(robot_base_state['rot'],dtype=np.float32)[[3,0,1,2]]
+        self.mj_data.qvel[:3] = np.array(robot_base_state['vLinear'],dtype=np.float32)
+        self.mj_data.qvel[3:6] = np.array(robot_base_state['vAngular'],dtype=np.float32)
 
         self.mj_data.qvel = 0.
         self.mj_data.ctrl = 0.
@@ -195,7 +198,7 @@ class Wr3MujocoEnv(BaseDeployEnv):
 
     
     def _apply_state_in_mujoco(self, state_dict):
-        robot_base_state = {"pos": state_dict["base_pos"], "base_quat": state_dict["base_quat"], "base_lin_vel": state_dict["base_lin_vel"], "base_ang_vel": state_dict["base_ang_vel"]}
+        robot_base_state = {"pos": state_dict["base_pos"], "rot": state_dict["base_quat"], "vLinear": state_dict["base_lin_vel"], "vAngular": state_dict["base_ang_vel"]}
         dof_keys = ["FL_hip_joint", "FL_thigh_joint", "FL_calf_joint", 
                     "FR_hip_joint", "FR_thigh_joint", "FR_calf_joint", 
                     "RL_hip_joint", "RL_thigh_joint", "RL_calf_joint",
