@@ -25,9 +25,8 @@ from deploy.robot_communication import DataReceiver, MotorCmdDataHandler
 
 class Wr3DeployEnv(BaseDeployEnv):
 
-    def __init__(self, cfg, run_control_thread=True) -> None:
+    def __init__(self, cfg) -> None:
         self.device = 'cuda:0'
-        self.run_control_thread = run_control_thread
         super().__init__(cfg)
 
         self.num_dofs = self.num_actions
@@ -56,15 +55,12 @@ class Wr3DeployEnv(BaseDeployEnv):
         self.action_scale = self.cfg["env"]["control"]["actionScale"]
 
         self.num_height_points = 140
-
-        # self._init_SDK()
-        # if run_control_thread:
-        #     control_thread = threading.Thread(target=self._control_thread)
-        #     control_thread.start()
+        
     def start_control_thread(self):
         self._init_SDK()
         control_thread = threading.Thread(target=self._control_thread)
         control_thread.start()
+
     def _init_SDK(self):
         self.receiver = DataReceiver()
         self.motor_cmd = MotorCmdDataHandler(num_motors=12, header1=0x57, header2=0x4C, sequence=0, data_type=0x01)
@@ -92,14 +88,14 @@ class Wr3DeployEnv(BaseDeployEnv):
             time.sleep(0.01)
         dof_pos = state_dict['dof_pos'][self.sim2real_dof_map]
 
-        self._set_motor_pd(kp=self.Kp,kd=self.Kd)
+        self._set_motor_pd(kp=self.Kp, kd=self.Kd)
         for i in range(self.num_dofs):
             self.motor_cmd.cmd[i].pos = dof_pos[i]
 
         self.motor_cmd.send_data()
-        print(state_dict)
+        print("_init_SDK:", state_dict)
 
-    def _set_motor_pd(self,kp=0.,kd=0.):
+    def _set_motor_pd(self, kp=0., kd=0.):
         state_dict = self._acquire_robot_state()
         dof_pos = state_dict['dof_pos'][self.sim2real_dof_map]
         for i in range(self.num_dofs):
@@ -108,8 +104,9 @@ class Wr3DeployEnv(BaseDeployEnv):
             self.motor_cmd.cmd[i].mode = 10
             self.motor_cmd.cmd[i].pos = dof_pos[i]
         self.motor_cmd.send_data()
+
     def _reset_robot(self):
-        self._set_motor_pd(kp=20.,kd=0.2)
+        self._set_motor_pd(kp=20., kd=0.2)
         while True:
             state_dict = self._acquire_robot_state()
             self.update_state(state_dict)
@@ -181,7 +178,7 @@ class Wr3DeployEnv(BaseDeployEnv):
 
         return state_dict
 
-    def _apply_action_to_robot(self, actions, state_dict, clip_action=False, clip_action_threshold=0.1):
+    def _apply_action_to_robot(self, actions, state_dict, clip_action=False, clip_action_threshold=0.01):
         dof_vel = state_dict['dof_vel']
         dof_pos = state_dict['dof_pos']
         actions = actions.squeeze(0).cpu().numpy()
@@ -257,7 +254,7 @@ if __name__ == '__main__':
     hydra.initialize(config_path='../cfgs/cfg/task/')
     cfg = hydra.compose(config_name='Wr3Deploy.yaml')
 
-    deploy_env = Wr3DeployEnv(cfg, run_control_thread=False)
+    deploy_env = Wr3DeployEnv(cfg)
 
     # core.global_hydra.GlobalHydra.instance().clear()
     # hydra.initialize(config_path='../cfgs/cfg/task/')
