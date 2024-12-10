@@ -10,7 +10,7 @@ record:
 env:
   numEnvs: 1
 
-  control:
-    # PD Drive parameters:
-    stiffness: 80.  # [N*m/rad]
-    damping: 2.     # [N*m*s/rad]
+#  control:
+#    # PD Drive parameters:
+#    stiffness: 20.  # [N*m/rad]
+#    damping: 0.5     # [N*m*s/rad]
