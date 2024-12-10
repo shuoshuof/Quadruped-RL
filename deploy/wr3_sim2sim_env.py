@@ -23,7 +23,7 @@ import torch
 from deploy.base_deploy_env import BaseDeployEnv
 
 class Wr3MujocoEnv(BaseDeployEnv):
-    def __init__(self, cfg, robot_start_poses=None, robot_base_state=None, run_sim_thread=True) -> None:
+    def __init__(self, cfg, robot_start_poses=None, robot_base_state=None) -> None:
 
         self.device = 'cuda:0'
 
@@ -53,18 +53,18 @@ class Wr3MujocoEnv(BaseDeployEnv):
         self.num_height_points = 140
 
         self.scene_path = 'assets/wr3/scene.xml'
-        self._init_sim()
-        self._launch_viewer()
 
         self.robot_start_poses = robot_start_poses if (robot_start_poses is not None) else self.cfg["env"]["defaultJointAngles"]
         self.robot_base_state = robot_base_state if (robot_base_state is not None) else self.cfg["env"]['baseInitState']
 
         self.record_video = self.cfg['record']['record_video']
 
-        if run_sim_thread:
-            sim_thread = threading.Thread(target=self._run_sim_thread)
-            sim_thread.setDaemon(True)
-            sim_thread.start()
+    def start_control_thread(self):
+        self._init_sim()
+        self._launch_viewer()
+        sim_thread = threading.Thread(target=self._run_sim_thread)
+        sim_thread.setDaemon(True)
+        sim_thread.start()
 
     def _init_sim(self):
         self.scene = mujoco.MjModel.from_xml_path(self.scene_path)

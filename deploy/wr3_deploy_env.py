@@ -59,6 +59,7 @@ class Wr3DeployEnv(BaseDeployEnv):
     def start_control_thread(self):
         self._init_SDK()
         control_thread = threading.Thread(target=self._control_thread)
+        control_thread.setDaemon(True)
         control_thread.start()
 
     def _init_SDK(self):
@@ -260,10 +261,7 @@ if __name__ == '__main__':
     # hydra.initialize(config_path='../cfgs/cfg/task/')
     # cfg = hydra.compose(config_name='Wr3Mujoco.yaml')
     #
-    # mujoco_env = Wr3MujocoEnv(
-    #     cfg,
-    #     run_sim_thread=False
-    # )
+    # mujoco_env = Wr3MujocoEnv(cfg)
     # rate = RateLimiter(frequency=100, warn=True)
     # while True:
     #
