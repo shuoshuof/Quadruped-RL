@@ -39,7 +39,7 @@ class Wr3Deployer(PpoPlayerContinuous):
         for _ in range(n_games):
             if games_played >= n_games:
                 break
-
+            self.env.start_control_thread()
             obses = self.env_reset(self.env)
 
             if need_init_rnn:

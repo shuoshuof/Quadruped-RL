@@ -27,7 +27,7 @@ class Wr3DeployEnv(BaseDeployEnv):
 
     def __init__(self, cfg, run_control_thread=True) -> None:
         self.device = 'cuda:0'
-
+        self.run_control_thread = run_control_thread
         super().__init__(cfg)
 
         self.num_dofs = self.num_actions
@@ -57,11 +57,14 @@ class Wr3DeployEnv(BaseDeployEnv):
 
         self.num_height_points = 140
 
+        # self._init_SDK()
+        # if run_control_thread:
+        #     control_thread = threading.Thread(target=self._control_thread)
+        #     control_thread.start()
+    def start_control_thread(self):
         self._init_SDK()
-        if run_control_thread:
-            control_thread = threading.Thread(target=self._control_thread)
-            control_thread.start()
-
+        control_thread = threading.Thread(target=self._control_thread)
+        control_thread.start()
     def _init_SDK(self):
         self.receiver = DataReceiver()
         self.motor_cmd = MotorCmdDataHandler(num_motors=12, header1=0x57, header2=0x4C, sequence=0, data_type=0x01)
@@ -277,4 +280,4 @@ if __name__ == '__main__':
     #     mujoco_env._apply_state_in_mujoco(state_dict)
     #     rate.sleep()
 
-    deploy_env._control_thread()
+    deploy_env.start_control_thread()
