@@ -8,6 +8,8 @@
 
 import os
 import numpy as np
+from collections import OrderedDict
+
 from isaacgym import gymtorch
 from isaacgym import gymapi, gymutil
 import torch
@@ -115,6 +117,7 @@ class Wr3Terrain(VecTask):
         self.dof_vel = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 1]
         self.contact_forces = gymtorch.wrap_tensor(net_contact_forces).view(self.num_envs, -1,
                                                                             3)  # shape: num_envs, num_bodies, xyz axis
+        self.actor_obs_hist = torch.zeros(self.num_envs, 5, 182, dtype=torch.float, device=self.device)
 
         # initialize some data used later on
         self.common_step_counter = 0
@@ -157,6 +160,17 @@ class Wr3Terrain(VecTask):
 
         self.reset_idx(torch.arange(self.num_envs, device=self.device))
         self.init_done = True
+
+    def get_state_dim_dict(self):
+
+         return OrderedDict(
+            actor_rnn_len = 5,
+            actor_rnn_input_size = 42,
+            critic_input_size = 45,
+            command_size=3,
+            world_model_size=3
+        )
+
 
     def create_sim(self):
         self.up_axis_idx = 2  # index of up axis: Y=1, Z=2
@@ -337,9 +351,7 @@ class Wr3Terrain(VecTask):
         # heights = torch.clip(self.root_states[:, 2].unsqueeze(1) - 0.5 - self.measured_heights, -1,
         #                      1.) * self.height_meas_scale
         self.measured_heights = heights = torch.zeros((self.num_envs,140),dtype=torch.float32).to(self.device)
-        # if self.use_default_commands:
-        #     self.commands*=0
-        #     self.commands[:, 0] = 1
+
 
         
         self.obs_buf = torch.cat((self.base_lin_vel * self.lin_vel_scale,
@@ -351,6 +363,38 @@ class Wr3Terrain(VecTask):
                                   heights,
                                   self.actions
                                   ), dim=-1)
+        # 3+3+12+12+140+12 = 182
+        actor_obs = torch.concatenate([
+            self.base_ang_vel * self.ang_vel_scale,
+            self.projected_gravity,
+            self.dof_pos * self.dof_pos_scale,
+            self.dof_vel * self.dof_vel_scale,
+            heights,
+            self.actions
+        ],dim=-1)
+        critic_obs = torch.concatenate([
+            self.base_lin_vel * self.lin_vel_scale,
+            actor_obs.clone(),
+        ],dim=-1)
+
+        command = self.commands[:, :3] * self.commands_scale
+
+        base_vel = self.base_lin_vel * self.lin_vel_scale
+
+        first_reset_idxs = torch.argwhere(self.progress_buf<=1).squeeze(0)
+        self.actor_obs_hist[first_reset_idxs,:-1,:] = actor_obs[first_reset_idxs]
+
+        obs_buf = torch.concatenate([
+            self.actor_obs_hist[:,:-1,:].clone().view(self.num_envs,-1),
+            actor_obs,
+            critic_obs,
+            command,
+            base_vel
+        ],dim=-1)
+
+        self.actor_obs_hist = torch.concatenate([self.actor_obs_hist[:,1:,:],actor_obs.unsqueeze(-1)],dim=-1)
+
+
     def cal_heights_reward(self):
         # TODO: use self.measured_heights
         heights = self.get_heights()

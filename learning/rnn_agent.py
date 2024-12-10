@@ -14,12 +14,12 @@ class RNNAgent(a2c_common.ContinuousA2CBase):
         a2c_common.ContinuousA2CBase.__init__(self, base_name, params)
         obs_shape = self.obs_shape
         
-        env_dim_dict = self.vec_env.env.get_env_dim_dict()
-        actor_rnn_len = env_dim_dict['actor_rnn_len']
-        actor_rnn_input_size = env_dim_dict['actor_rnn_input_size']
-        critic_input_size = env_dim_dict['critic_input_size']
-        command_size = env_dim_dict['command_size']
-        world_model_size = env_dim_dict['world_model_size']
+        state_dim_dict = self.vec_env.env.get_state_dim_dict()
+        actor_rnn_len = state_dim_dict['actor_rnn_len']
+        actor_rnn_input_size = state_dim_dict['actor_rnn_input_size']
+        critic_input_size = state_dim_dict['critic_input_size']
+        command_size = state_dim_dict['command_size']
+        world_model_size = state_dim_dict['world_model_size']
 
         build_config = {
             'actions_num' : self.actions_num,
