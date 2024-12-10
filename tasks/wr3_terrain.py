@@ -337,6 +337,8 @@ class Wr3Terrain(VecTask):
         # if self.use_default_commands:
         #     self.commands*=0
         #     self.commands[:, 0] = 1
+
+        
         self.obs_buf = torch.cat((self.base_lin_vel * self.lin_vel_scale,
                                   self.base_ang_vel * self.ang_vel_scale,
                                   self.projected_gravity,
