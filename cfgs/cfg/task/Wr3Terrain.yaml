@@ -107,12 +107,19 @@ env:
 
   control:
     # PD Drive parameters:
-    stiffness: 20.0  # [N*m/rad]
-    damping: 0.5     # [N*m*s/rad]
+    stiffness: 10.0  # [N*m/rad]
+    damping: 0.2     # [N*m*s/rad]
     # action scale: target angle = actionScale * action + defaultAngle
-    actionScale: 0.5
+    actionScale: 4
     # decimation: Number of control action updates @ sim DT per policy DT
     decimation: 4
+
+#    stiffness: 80.0  # [N*m/rad]
+#    damping: 0.5     # [N*m*s/rad]
+#    # action scale: target angle = actionScale * action + defaultAngle
+#    actionScale: 0.5
+#    # decimation: Number of control action updates @ sim DT per policy DT
+#    decimation: 4
 
   defaultJointAngles: # = target angles when action = 0.0
     # the order should match the order in actions
@@ -131,6 +138,39 @@ env:
     RR_hip_joint: 0.0
     RR_thigh_joint: 0.85
     RR_calf_joint: -1.8
+
+#    FL_hip_joint: 0.0
+#    FL_thigh_joint: 0.5
+#    FL_calf_joint: -1.1
+#
+#    FR_hip_joint: 0.0
+#    FR_thigh_joint: 0.5
+#    FR_calf_joint: -1.1
+#
+#    RL_hip_joint: 0.0
+#    RL_thigh_joint: 0.5
+#    RL_calf_joint: -1.1
+#
+#    RR_hip_joint: 0.0
+#    RR_thigh_joint: 0.5
+#    RR_calf_joint: -1.1
+
+  resetJointAngles:
+    FL_hip_joint: 0.362
+    FL_thigh_joint: 1.11
+    FL_calf_joint: -2.71
+
+    FR_hip_joint: 0.362
+    FR_thigh_joint: 1.11
+    FR_calf_joint: -2.71
+
+    RL_hip_joint: 0.362
+    RL_thigh_joint: 1.11
+    RL_calf_joint: -2.71
+
+    RR_hip_joint: 0.362
+    RR_thigh_joint: 1.11
+    RR_calf_joint: -2.71
 
   urdfAsset:
     file: "wr3/wr3_no_toe_nocol.xml"
@@ -151,7 +191,7 @@ env:
     orientationRewardScale: -0. #-1.
     torqueRewardScale: -0.00002 # -0.000025
     jointAccRewardScale: -0.0005 # -0.0025
-    heightRewardScale: 0.0001 #5
+    heightRewardScale: 0.01 #5
     feetAirTimeRewardScale:  1.0
     kneeCollisionRewardScale: -0.25
     feetStumbleRewardScale: -0. #-2.0
@@ -161,7 +201,7 @@ env:
     hipRewardScale: -0. #25
 
     # pose constraints
-    poseRewardScale: -0.0005
+    poseRewardScale: -0.01
 
     # TODO: may be need to be turned
     # normalization
