@@ -71,9 +71,6 @@ class Wr3Terrain(VecTask):
         v_ang = self.cfg["env"]["baseInitState"]["vAngular"]
         self.base_init_state = pos + rot + v_lin + v_ang
 
-        # default joint positions
-        self.named_default_joint_angles = self.cfg["env"]["defaultJointAngles"]
-
         # other
         self.decimation = self.cfg["env"]["control"]["decimation"]
         self.dt = self.decimation * self.cfg["sim"]["dt"]
@@ -141,21 +138,21 @@ class Wr3Terrain(VecTask):
 
         self.height_points = self.init_height_points()
         self.measured_heights = None
+
+
         # joint positions offsets
         self.default_dof_pos = torch.zeros_like(self.dof_pos, dtype=torch.float, device=self.device,
                                                 requires_grad=False)
+        # default joint positions
+        self.named_default_joint_angles = self.cfg["env"]["defaultJointAngles"]
+
         for i in range(self.num_actions):
             name = self.dof_names[i]
             angle = self.named_default_joint_angles[name]
             self.default_dof_pos[:, i] = angle
+
         # reward episode sums
         torch_zeros = lambda: torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
-        # self.episode_sums = {"lin_vel_xy": torch_zeros(), "lin_vel_z": torch_zeros(), "ang_vel_z": torch_zeros(),
-        #                      "ang_vel_xy": torch_zeros(),
-        #                      "orient": torch_zeros(), "torques": torch_zeros(), "joint_acc": torch_zeros(),
-        #                      "base_height": torch_zeros(),
-        #                      "air_time": torch_zeros(), "collision": torch_zeros(), "stumble": torch_zeros(),
-        #                      "action_rate": torch_zeros(), "hip": torch_zeros()}
         self.episode_sums = { rew_name: torch_zeros() for rew_name in self.rew_scales.keys() }
 
         self.reset_idx(torch.arange(self.num_envs, device=self.device))
@@ -263,6 +260,12 @@ class Wr3Terrain(VecTask):
         self.base_index = 0
 
         dof_props = self.gym.get_asset_dof_properties(anymal_asset)
+
+        # dof_lower = torch.zeros_like(self.default_dof_pos,dtype=torch.float,device=self.device)
+        # dof_upper = torch.zeros_like(self.default_dof_pos,dtype=torch.float,device=self.device)
+        # for i in range(self.num_dof):
+        #     dof_lower[:,i]= dof_props['lower'][i]
+        #     dof_upper[:,i]= dof_props['upper'][i]
 
         # env origins
         self.env_origins = torch.zeros(self.num_envs, 3, device=self.device, requires_grad=False)
