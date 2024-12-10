@@ -205,7 +205,8 @@ class DataReceiver:
         self.odometer_data_lock = threading.Lock()
         self.joint_state_data_lock = threading.Lock()
         self.remote_data_lock = threading.Lock()
-        self.recv_thread = threading.Thread(target=self.receive_and_process_data)  # 创建数据接收线程
+        self.recv_thread = threading.Thread(target=self.receive_and_process_data)
+        self.recv_thread.setDaemon(True)# 创建数据接收线程
         self.recv_thread.start()  # 启动线程
 
     # IMU数据解析函数

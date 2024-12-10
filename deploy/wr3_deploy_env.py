@@ -47,7 +47,10 @@ class Wr3DeployEnv(BaseDeployEnv):
                                            device=self.device)
         self.use_default_commands = self.cfg["env"]["useDefaultCommands"]
         # control
-        self.default_dof_pos = np.zeros(self.num_dofs, dtype=np.float32)
+        # self.default_dof_pos = np.array(self.cfg["env"]["defaultJointAngles"],dtype=np.float32)
+        self.default_dof_pos = np.array([angle for angle in dict(self.cfg["env"]["defaultJointAngles"]).values()],
+                                        dtype=np.float32)
+
         self.Kp = self.cfg["env"]["control"]["stiffness"]
         self.Kd = self.cfg["env"]["control"]["damping"]
         self.action_scale = self.cfg["env"]["control"]["actionScale"]
@@ -63,38 +66,57 @@ class Wr3DeployEnv(BaseDeployEnv):
         self.receiver = DataReceiver()
         self.motor_cmd = MotorCmdDataHandler(num_motors=12, header1=0x57, header2=0x4C, sequence=0, data_type=0x01)
         # h-thigh a-hip k-calf
-        self.real2sim_dof_map= [
-            3,4,5,
-            0,1,2,
-            9,10,11,
-            6,7,8,
+        self.real2sim_dof_map = [
+            3, 4, 5,
+            0, 1, 2,
+            9, 10, 11,
+            6, 7, 8,
         ]
 
-        self.sim2real_dof_map= [
-            3,4,5,
-            0,1,2,
-            9,10,11,
-            6,7,8,
+        self.sim2real_dof_map = [
+            3, 4, 5,
+            0, 1, 2,
+            9, 10, 11,
+            6, 7, 8,
         ]
 
         # TODO: motor order may be different with the sim
-        for i in range(self.num_dofs):
-            self.motor_cmd.cmd[i].kp = self.Kp
-            self.motor_cmd.cmd[i].kd = self.Kd
         for _ in range(100):
             imu_data = self.receiver.get_imu_data()
             self.start_quat = np.array(imu_data.quaternion, dtype=np.float32)[[1, 2, 3, 0]]
-            self.start_quat = normalize(to_torch(self.start_quat,device=self.device))
+            self.start_quat = normalize(to_torch(self.start_quat, device=self.device))
+            state_dict = self._acquire_robot_state()
             time.sleep(0.01)
+        dof_pos = state_dict['dof_pos'][self.sim2real_dof_map]
 
+        self._set_motor_pd(kp=self.Kp,kd=self.Kd)
+        for i in range(self.num_dofs):
+            self.motor_cmd.cmd[i].pos = dof_pos[i]
+
+        self.motor_cmd.send_data()
+        print(state_dict)
+
+    def _set_motor_pd(self,kp=0.,kd=0.):
+        state_dict = self._acquire_robot_state()
+        dof_pos = state_dict['dof_pos'][self.sim2real_dof_map]
+        for i in range(self.num_dofs):
+            self.motor_cmd.cmd[i].kp = kp
+            self.motor_cmd.cmd[i].kd = kd
+            self.motor_cmd.cmd[i].mode = 10
+            self.motor_cmd.cmd[i].pos = dof_pos[i]
+        self.motor_cmd.send_data()
     def _reset_robot(self):
+        self._set_motor_pd(kp=20.,kd=0.2)
         while True:
             state_dict = self._acquire_robot_state()
             self.update_state(state_dict)
 
             actions = torch.zeros((self.num_envs, self.num_actions), dtype=torch.float32, device=self.device)
-            self._apply_action_to_robot(actions, state_dict, clip_action=True, clip_action_threshold=0.1)
-            if np.all(state_dict["dof_pos"] - self.default_dof_pos < 1e-2):
+            self._apply_action_to_robot(actions, state_dict, clip_action=True, clip_action_threshold=0.01)
+            time.sleep(0.01)
+            if np.all(np.abs(state_dict["dof_pos"] - self.default_dof_pos) < 1e-1):
+                self._set_motor_pd(kp=self.Kp,kd=self.Kd)
+                raise EOFError
                 break
 
     def _control_thread(self):
@@ -112,7 +134,7 @@ class Wr3DeployEnv(BaseDeployEnv):
 
             rate.sleep()
             end = time.time()
-            print("Control Thread Time: ", end - start)
+            # print("Control Thread Time: ", end - start)
 
     def _acquire_robot_state(self):
         odometer_data = self.receiver.get_odometer_data()
@@ -121,7 +143,7 @@ class Wr3DeployEnv(BaseDeployEnv):
         # TODO: need to change the order of the quaternion?????
         base_quat = np.array(imu_data.quaternion, dtype=np.float32)[[1, 2, 3, 0]]
         base_quat = normalize(to_torch(base_quat, device=self.device))
-        base_quat = quat_mul(calc_heading_quat_inv(self.start_quat[None,...]), base_quat[None,...])[0].cpu().numpy()
+        base_quat = quat_mul(calc_heading_quat_inv(self.start_quat[None, ...]), base_quat[None, ...])[0].cpu().numpy()
 
         base_lin_vel = np.array([
             odometer_data.linear_x,
@@ -166,6 +188,7 @@ class Wr3DeployEnv(BaseDeployEnv):
             target_dof_pos = np.clip(target_dof_pos, dof_pos - clip_action_threshold, dof_pos + clip_action_threshold)
         # TODO: motor order may be different with the sim
         target_dof_pos = target_dof_pos[self.sim2real_dof_map]
+        print(target_dof_pos)
         for i in range(self.num_dofs):
             self.motor_cmd.cmd[i].pos = target_dof_pos[i]
 
@@ -224,26 +247,34 @@ def wrap_to_pi(angles):
 if __name__ == '__main__':
     from hydra import core
     from deploy.wr3_sim2sim_env import Wr3MujocoEnv
+
     # ip 192.168.93.107 255.255.255.0 192.168.93.1
 
     core.global_hydra.GlobalHydra.instance().clear()
     hydra.initialize(config_path='../cfgs/cfg/task/')
-    cfg = hydra.compose(config_name='Wr3Mujoco.yaml')
+    cfg = hydra.compose(config_name='Wr3Deploy.yaml')
 
-    deploy_env = Wr3DeployEnv(cfg,run_control_thread=False)
-    mujoco_env = Wr3MujocoEnv(
-        cfg,
-        run_sim_thread=False
-    )
-    rate = RateLimiter(frequency=100, warn=True)
-    while True:
+    deploy_env = Wr3DeployEnv(cfg, run_control_thread=False)
 
-        state_dict = deploy_env._acquire_robot_state()
+    # core.global_hydra.GlobalHydra.instance().clear()
+    # hydra.initialize(config_path='../cfgs/cfg/task/')
+    # cfg = hydra.compose(config_name='Wr3Mujoco.yaml')
+    #
+    # mujoco_env = Wr3MujocoEnv(
+    #     cfg,
+    #     run_sim_thread=False
+    # )
+    # rate = RateLimiter(frequency=100, warn=True)
+    # while True:
+    #
+    #     state_dict = deploy_env._acquire_robot_state()
+    #
+    #     if "base_pos" is not state_dict.keys():
+    #         # x,y,z,w
+    #         state_dict["base_pos"] = np.array([0., 0., 0.5], dtype=np.float32)
+    #     # state_dict["base_quat"] = state_dict["base_quat"][[3,0,1,2]]
+    #     print(np.round(state_dict["base_quat"], 4))
+    #     mujoco_env._apply_state_in_mujoco(state_dict)
+    #     rate.sleep()
 
-        if "base_pos" is not state_dict.keys():
-            # x,y,z,w
-            state_dict["base_pos"] = np.array([0., 0., 0.5], dtype=np.float32)
-        # state_dict["base_quat"] = state_dict["base_quat"][[3,0,1,2]]
-        print(np.round(state_dict["base_quat"], 4))
-        mujoco_env._apply_state_in_mujoco(state_dict)
-        rate.sleep()
+    deploy_env._control_thread()

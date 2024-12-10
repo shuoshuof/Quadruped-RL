@@ -16,7 +16,7 @@ from gym import spaces
 import torch
 
 class BaseDeployEnv(ABC):
-    def __init__(self,cfg,device="cuda:0"):
+    def __init__(self,cfg,device="cuda:0",run_command_thread=False):
         self.cfg = cfg
         self.device = device
         self.num_envs = self.cfg["env"]['numEnvs']
@@ -30,10 +30,10 @@ class BaseDeployEnv(ABC):
         self._init_thread_flags()
 
         self.commands = torch.zeros((self.num_envs, 4), dtype=torch.float32, device=self.device)
-
-        command_thread = threading.Thread(target=self._run_command_thread)
-        command_thread.setDaemon(True)
-        command_thread.start()
+        if run_command_thread:
+            command_thread = threading.Thread(target=self._run_command_thread)
+            command_thread.setDaemon(True)
+            command_thread.start()
 
     def _init_thread_flags(self):
         self.state_lock = threading.Lock()

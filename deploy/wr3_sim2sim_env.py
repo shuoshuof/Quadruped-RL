@@ -14,6 +14,7 @@ from collections import OrderedDict
 import time
 
 from loop_rate_limiters import RateLimiter
+import imageio
 import mujoco
 import mujoco.viewer
 from isaacgymenvs.utils.torch_jit_utils import quat_rotate_inverse,quat_apply
@@ -58,6 +59,8 @@ class Wr3MujocoEnv(BaseDeployEnv):
         self.robot_start_poses = robot_start_poses if (robot_start_poses is not None) else self.cfg["env"]["defaultJointAngles"]
         self.robot_base_state = robot_base_state if (robot_base_state is not None) else self.cfg["env"]['baseInitState']
 
+        self.record_video = self.cfg['record']['record_video']
+
         if run_sim_thread:
             sim_thread = threading.Thread(target=self._run_sim_thread)
             sim_thread.setDaemon(True)
@@ -101,6 +104,9 @@ class Wr3MujocoEnv(BaseDeployEnv):
         self._reset_robot(self.robot_start_poses, self.robot_base_state)
         self.has_started.set()
 
+        if self.record_video:
+            self.video_writer = imageio.get_writer(self.cfg['record']['video_save_path'], fps=30)
+
         rate = RateLimiter(frequency=200.0, warn=False)
         while self.viewer.is_running():
             start = time.time()
@@ -114,6 +120,11 @@ class Wr3MujocoEnv(BaseDeployEnv):
             rate.sleep()
             end = time.time()
             # print('Simulation step took {} seconds'.format(end - start))
+            # if self.record_video:
+            # #     frame = self.viewer.
+            #     self.video_writer.append_data(frame)
+        if self.record_video:
+            self.video_writer.close()
 
 
     def _acquire_mujoco_state(self):
