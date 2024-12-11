@@ -9,10 +9,10 @@ params:
 
   network:
     name: rnn
-    
+
     rnn:
       layers: 2
-      units: 64
+      unit: 64
     actor:
       units: [256, 128, 64]
     critic:
