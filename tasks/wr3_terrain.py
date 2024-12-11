@@ -61,6 +61,8 @@ class Wr3Terrain(VecTask):
         # self.rew_scales["hip"] = self.cfg["env"]["learn"]["hipRewardScale"]
         self.rew_scales["pose"] = self.cfg["env"]["learn"]["poseRewardScale"]
 
+        self.expected_height = self.cfg["env"]["learn"]["expectedHeight"]
+
         # command ranges
         self.command_x_range = self.cfg["env"]["randomCommandVelocityRanges"]["linear_x"]
         self.command_y_range = self.cfg["env"]["randomCommandVelocityRanges"]["linear_y"]
@@ -183,7 +185,6 @@ class Wr3Terrain(VecTask):
             self._create_trimesh()
             self.custom_origins = True
         self._create_envs(self.num_envs, self.cfg["env"]['envSpacing'], int(np.sqrt(self.num_envs)))
-
         if self.randomize:
             self.apply_randomizations(self.randomization_params)
     def _get_noise_scale_vec(self, cfg):
@@ -406,7 +407,7 @@ class Wr3Terrain(VecTask):
         heights = heights.reshape(self.num_envs, 14, 10)
         selected_heights = 4 * self.root_states[:, 2] - \
                             (heights[...,6,4] + heights[...,6,5] + heights[...,7,4] + heights[...,7,5])
-        rew_height = selected_heights*self.rew_scales["height"]
+        rew_height = (selected_heights-self.expected_height).abs()*self.rew_scales["height"]
         return rew_height
 
     def compute_reward(self):
