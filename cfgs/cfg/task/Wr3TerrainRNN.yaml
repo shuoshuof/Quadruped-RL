@@ -1,17 +1,13 @@
 # used to create the object
+defaults:
+  - Wr3Terrain.yaml
+
+
 name: Wr3TerrainRNN
+use_rnn: True
 
-physics_engine: 'physx'
-
-is_rnn: True
 
 env:
   numEnvs: ${resolve_default:4096,${...num_envs}}
-  numObservations: 188
-  numActions: 12
-  envSpacing: 3.  # [m]
-  enableDebugVis: False
-  useDefaultCommands: False
-
-
+  numObservations: 42
 

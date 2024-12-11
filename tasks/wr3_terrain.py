@@ -26,6 +26,7 @@ class Wr3Terrain(VecTask):
     def __init__(self, cfg, rl_device, sim_device, graphics_device_id, headless, virtual_screen_capture, force_render):
 
         self.cfg = cfg
+        self.use_rnn = self.cfg.get('use_rnn', False)
         self.height_samples = None
         self.custom_origins = False
         self.debug_viz = self.cfg["env"]["enableDebugVis"]
@@ -352,48 +353,51 @@ class Wr3Terrain(VecTask):
         #                      1.) * self.height_meas_scale
         self.measured_heights = heights = torch.zeros((self.num_envs,140),dtype=torch.float32).to(self.device)
 
+        if self.use_rnn:
+            # 3+3+12+12+12 = 42
+            actor_obs = torch.concatenate([
+                self.base_ang_vel * self.ang_vel_scale,
+                self.projected_gravity,
+                self.dof_pos * self.dof_pos_scale,
+                self.dof_vel * self.dof_vel_scale,
+                # heights,
+                self.actions
+            ],dim=-1)
+            critic_obs = torch.concatenate([
+                self.base_lin_vel * self.lin_vel_scale,
+                actor_obs.clone(),
+            ],dim=-1)
 
-        
-        self.obs_buf = torch.cat((self.base_lin_vel * self.lin_vel_scale,
-                                  self.base_ang_vel * self.ang_vel_scale,
-                                  self.projected_gravity,
-                                  self.commands[:, :3] * self.commands_scale,
-                                  self.dof_pos * self.dof_pos_scale,
-                                  self.dof_vel * self.dof_vel_scale,
-                                  heights,
-                                  self.actions
-                                  ), dim=-1)
-        # 3+3+12+12+140+12 = 182
-        actor_obs = torch.concatenate([
-            self.base_ang_vel * self.ang_vel_scale,
-            self.projected_gravity,
-            self.dof_pos * self.dof_pos_scale,
-            self.dof_vel * self.dof_vel_scale,
-            # heights,
-            self.actions
-        ],dim=-1)
-        critic_obs = torch.concatenate([
-            self.base_lin_vel * self.lin_vel_scale,
-            actor_obs.clone(),
-        ],dim=-1)
+            command = self.commands[:, :3] * self.commands_scale
 
-        command = self.commands[:, :3] * self.commands_scale
+            base_vel = self.base_lin_vel * self.lin_vel_scale
 
-        base_vel = self.base_lin_vel * self.lin_vel_scale
+            first_reset_idxs = torch.argwhere(self.progress_buf<=1).view(-1)
+            if len(first_reset_idxs)>0:
+                self.actor_obs_hist[first_reset_idxs,:-1,:] = actor_obs[first_reset_idxs].unsqueeze(1)
 
-        first_reset_idxs = torch.argwhere(self.progress_buf<=1).view(-1)
-        if len(first_reset_idxs)>0:
-            self.actor_obs_hist[first_reset_idxs,:-1,:] = actor_obs[first_reset_idxs].unsqueeze(1)
+            obs_buf = torch.concatenate([
+                self.actor_obs_hist[:,:-1,:].clone().view(self.num_envs,-1),
+                actor_obs,
+                critic_obs,
+                command,
+                base_vel
+            ],dim=-1)
 
-        obs_buf = torch.concatenate([
-            self.actor_obs_hist[:,:-1,:].clone().view(self.num_envs,-1),
-            actor_obs,
-            critic_obs,
-            command,
-            base_vel
-        ],dim=-1)
+            self.obs_buf = obs_buf
 
-        self.actor_obs_hist = torch.concatenate([self.actor_obs_hist[:,1:,:],actor_obs.unsqueeze(1)],dim=1)
+            self.actor_obs_hist = torch.concatenate([self.actor_obs_hist[:,1:,:],actor_obs.unsqueeze(1)],dim=1)
+        else:
+            self.obs_buf = torch.concatenate([
+                # self.base_lin_vel * self.lin_vel_scale,
+                self.base_ang_vel * self.ang_vel_scale,
+                self.projected_gravity,
+                self.commands[:, :3] * self.commands_scale,
+                self.dof_pos * self.dof_pos_scale,
+                self.dof_vel * self.dof_vel_scale,
+                # heights,
+                self.actions
+            ], dim=-1)
 
 
     def cal_heights_reward(self):

@@ -5,7 +5,7 @@ physics_engine: 'physx'
 
 env:
   numEnvs: ${resolve_default:4096,${...num_envs}}
-  numObservations: 188
+  numObservations: 45
   numActions: 12
   envSpacing: 3.  # [m]
   enableDebugVis: False
@@ -173,7 +173,7 @@ env:
     RR_calf_joint: -2.71
 
   urdfAsset:
-    file: "wr3/wr3_no_toe_nocol.xml"
+    file: "wr3/wr3_sphere_feet.xml"
     footName: calf #
     kneeName: thigh
     collapseFixedJoints: True
@@ -188,10 +188,10 @@ env:
     linearVelocityZRewardScale: -4.0
     angularVelocityXYRewardScale: -0.05
     angularVelocityZRewardScale: 0.5
-    orientationRewardScale: -0. #-1.
+    orientationRewardScale: -0.2 #-1.
     torqueRewardScale: -0.00002 # -0.000025
     jointAccRewardScale: -0.0005 # -0.0025
-    heightRewardScale: 0.01 #5
+    heightRewardScale: 0.3 #5
     feetAirTimeRewardScale:  1.0
     kneeCollisionRewardScale: -0.25
     feetStumbleRewardScale: -0. #-2.0
@@ -201,7 +201,7 @@ env:
     hipRewardScale: -0. #25
 
     # pose constraints
-    poseRewardScale: -0.01
+    poseRewardScale: -0.2
 
     # TODO: may be need to be turned
     # normalization
