@@ -374,12 +374,12 @@ class Wr3Terrain(VecTask):
             # 3
             base_vel = self.base_lin_vel * self.lin_vel_scale
 
-            first_reset_idxs = torch.argwhere(self.progress_buf<=1).view(-1)
+            first_reset_idxs = torch.argwhere(self.progress_buf < 1).view(-1)
             if len(first_reset_idxs)>0:
-                self.actor_obs_hist[first_reset_idxs,:-1,:] = actor_obs[first_reset_idxs].unsqueeze(1)
+                self.actor_obs_hist[first_reset_idxs, : ,:] = actor_obs[first_reset_idxs].unsqueeze(1)
             # 42*4 + 42 + 45 + 3 + 3 = 261
             obs_buf = torch.concatenate([
-                self.actor_obs_hist[:,:-1,:].clone().view(self.num_envs,-1),
+                self.actor_obs_hist[:, 1: ,:].clone().view(self.num_envs, -1),
                 actor_obs,
                 critic_obs,
                 command,
@@ -526,6 +526,7 @@ class Wr3Terrain(VecTask):
             self.commands*=0
             self.commands[:, 0] = 1
 
+        self.actions[env_ids] = 0.
         self.last_actions[env_ids] = 0.
         self.last_dof_vel[env_ids] = 0.
         self.feet_air_time[env_ids] = 0.
