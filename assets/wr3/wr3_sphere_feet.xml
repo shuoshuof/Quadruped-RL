@@ -49,7 +49,8 @@
                 <body name="FL_thigh_link" pos="0.0625 0.02 0">
                     <inertial pos="-0.001565 0.046615 -0.027916" quat="0.63718 -0.0578282 0.0378488 0.76761"
                               mass="1.059" diaginertia="0.00482696 0.00453766 0.000725459"/>
-                    <joint name="FL_thigh_joint" pos="0 0 0" axis="0 1 0" limited="true" range="-0.66323 2.79253"/>
+<!--                    <joint name="FL_thigh_joint" pos="0 0 0" axis="0 1 0" limited="true" range="-0.66323 2.79253"/>-->
+                    <joint name="FL_thigh_joint" pos="0 0 0" axis="0 1 0" limited="true" range="-0.66323 0.79253"/>
                     <geom class="visual" mesh="FL_thigh_link"/>
                     <geom class="collision" type="sphere" size="0.031" pos="0 0.0652  -0.213" rgba="1. 0. 0. 1."/>
 <!--                    <geom class="collision" mesh="FL_thigh_link"/>-->
@@ -75,7 +76,8 @@
                 <body name="FR_thigh_link" pos="0.0625 -0.02 0">
                     <inertial pos="-0.001574 -0.046573 -0.027836" quat="0.766481 0.0387532 -0.0565184 0.638601"
                               mass="1.057" diaginertia="0.004823 0.00453234 0.000726569"/>
-                    <joint name="FR_thigh_joint" pos="0 0 0" axis="0 1 0" limited="true" range="-0.66323 2.79253"/>
+<!--                    <joint name="FR_thigh_joint" pos="0 0 0" axis="0 1 0" limited="true" range="-0.66323 2.79253"/>-->
+                    <joint name="FR_thigh_joint" pos="0 0 0" axis="0 1 0" limited="true" range="-0.66323 0.79253"/>
                     <geom class="collision" type="sphere" size="0.031" pos="0 -0.0652  -0.213" rgba="1. 0. 0. 1."/>
                     <geom class="visual" mesh="FR_thigh_link"/>
 <!--                    <geom class="collision" mesh="FR_thigh_link"/>-->
@@ -98,7 +100,8 @@
                 <body name="RL_thigh_link" pos="-0.0625 0.02 0">
                     <inertial pos="-0.001565 0.046615 -0.027916" quat="0.63718 -0.0578282 0.0378488 0.76761"
                               mass="1.059" diaginertia="0.00482696 0.00453766 0.000725459"/>
-                    <joint name="RL_thigh_joint" pos="0 0 0" axis="0 1 0" limited="true" range="-0.66323 4.50295"/>
+<!--                    <joint name="RL_thigh_joint" pos="0 0 0" axis="0 1 0" limited="true" range="-0.66323 4.50295"/>-->
+                    <joint name="RL_thigh_joint" pos="0 0 0" axis="0 1 0" limited="true" range="-0.66323 0.70295"/>
                     <geom class="visual" mesh="RL_thigh_link"/>
                     <geom class="collision" type="sphere" size="0.031" pos="0 0.0652  -0.213" rgba="1. 0. 0. 1."/>
 <!--                    <geom class="collision" mesh="RL_thigh_link"/>-->
@@ -121,7 +124,8 @@
                 <body name="RR_thigh_link" pos="-0.0625 -0.02 0">
                     <inertial pos="-0.001574 -0.046573 -0.027836" quat="0.766481 0.0387532 -0.0565184 0.638601"
                               mass="1.057" diaginertia="0.004823 0.00453234 0.000726569"/>
-                    <joint name="RR_thigh_joint" pos="0 0 0" axis="0 1 0" limited="true" range="-0.663225 4.50295"/>
+<!--                    <joint name="RR_thigh_joint" pos="0 0 0" axis="0 1 0" limited="true" range="-0.663225 4.50295"/>-->
+                    <joint name="RR_thigh_joint" pos="0 0 0" axis="0 1 0" limited="true" range="-0.663225 0.70295"/>
                     <geom class="visual" mesh="RR_thigh_link"/>
                     <geom class="collision" type="sphere" size="0.031" pos="0 -0.0652  -0.213" rgba="1. 0. 0. 1."/>
 <!--                    <geom class="collision" mesh="RR_thigh_link"/>-->
