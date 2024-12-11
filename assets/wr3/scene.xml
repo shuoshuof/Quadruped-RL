@@ -20,27 +20,5 @@
     <light pos="0 0 1.5" dir="0 0 -1" directional="true" />
     <geom name="floor" size="0 0 0.05" type="plane" material="groundplane" />
 
-<!--    <body name="table" pos="0.4 0. 1.05">-->
-<!--      <geom type="box" size="0.4 0.4 0.05" rgba="0.8 0.6 0.4 0.5" contype="4" conaffinity="2" friction="1.0 0.005 0.0001"/>-->
-
-<!--      <body name="target" pos="0 0 0.05">-->
-<!--        <geom type="box" size="0.05 0.05 0.001" rgba="0. 1. 0. 1"  contype="0" conaffinity="0" mass="1.0" friction="1.0 0.005 0.0001"/>-->
-<!--      </body>-->
-
-<!--    </body>-->
-
-<!--    <body name="object" pos="0.4 0. 2">-->
-<!--      <joint name="object_joint" type="free"/>-->
-<!--      <geom type="box" size="0.025 0.025 0.025" rgba="1. 0. 0. 1" contype="2" conaffinity="1" mass="1.0" friction="2.0 0.005 0.0001"/>-->
-<!--    </body>-->
-
-<!--&lt;!&ndash;    <body name="object1" pos="0.3 -0.25 2">&ndash;&gt;-->
-<!--&lt;!&ndash;      <joint name="object_joint1" type="free"/>&ndash;&gt;-->
-<!--&lt;!&ndash;      <geom type="box" size="0.025 0.025 0.025" rgba="1. 0. 0. 1" contype="2" conaffinity="1" mass="1.0" />&ndash;&gt;-->
-<!--&lt;!&ndash;    </body>&ndash;&gt;-->
-
-<!--    <body name="camera_body" pos="0 0 2">-->
-<!--      <camera name="top" pos="0 0 0" />-->
-<!--    </body>-->
   </worldbody>
 </mujoco>
