@@ -9,5 +9,5 @@ use_rnn: True
 
 env:
   numEnvs: ${resolve_default:4096,${...num_envs}}
-  numObservations: 42
+  numObservations: 261
 

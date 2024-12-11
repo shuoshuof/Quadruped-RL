@@ -364,19 +364,20 @@ class Wr3Terrain(VecTask):
                 # heights,
                 self.actions
             ],dim=-1)
+            # 3 + 42 = 45
             critic_obs = torch.concatenate([
                 self.base_lin_vel * self.lin_vel_scale,
                 actor_obs.clone(),
             ],dim=-1)
-
+            # 3
             command = self.commands[:, :3] * self.commands_scale
-
+            # 3
             base_vel = self.base_lin_vel * self.lin_vel_scale
 
             first_reset_idxs = torch.argwhere(self.progress_buf<=1).view(-1)
             if len(first_reset_idxs)>0:
                 self.actor_obs_hist[first_reset_idxs,:-1,:] = actor_obs[first_reset_idxs].unsqueeze(1)
-
+            # 42*4 + 42 + 45 + 3 + 3 = 261
             obs_buf = torch.concatenate([
                 self.actor_obs_hist[:,:-1,:].clone().view(self.num_envs,-1),
                 actor_obs,
@@ -384,7 +385,7 @@ class Wr3Terrain(VecTask):
                 command,
                 base_vel
             ],dim=-1)
-
+            assert obs_buf.shape == (self.num_envs, self.num_obs)
             self.obs_buf = obs_buf
 
             self.actor_obs_hist = torch.concatenate([self.actor_obs_hist[:,1:,:],actor_obs.unsqueeze(1)],dim=1)
