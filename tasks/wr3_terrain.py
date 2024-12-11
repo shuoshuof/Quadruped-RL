@@ -117,7 +117,7 @@ class Wr3Terrain(VecTask):
         self.dof_vel = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 1]
         self.contact_forces = gymtorch.wrap_tensor(net_contact_forces).view(self.num_envs, -1,
                                                                             3)  # shape: num_envs, num_bodies, xyz axis
-        self.actor_obs_hist = torch.zeros(self.num_envs, 5, 182, dtype=torch.float, device=self.device)
+        self.actor_obs_hist = torch.zeros(self.num_envs, 5, 182-140, dtype=torch.float, device=self.device)
 
         # initialize some data used later on
         self.common_step_counter = 0
@@ -369,7 +369,7 @@ class Wr3Terrain(VecTask):
             self.projected_gravity,
             self.dof_pos * self.dof_pos_scale,
             self.dof_vel * self.dof_vel_scale,
-            heights,
+            # heights,
             self.actions
         ],dim=-1)
         critic_obs = torch.concatenate([
@@ -382,7 +382,8 @@ class Wr3Terrain(VecTask):
         base_vel = self.base_lin_vel * self.lin_vel_scale
 
         first_reset_idxs = torch.argwhere(self.progress_buf<=1).squeeze(0)
-        self.actor_obs_hist[first_reset_idxs,:-1,:] = actor_obs[first_reset_idxs]
+        if len(first_reset_idxs)>0:
+            self.actor_obs_hist[first_reset_idxs,:-1,:] = actor_obs[first_reset_idxs]
 
         obs_buf = torch.concatenate([
             self.actor_obs_hist[:,:-1,:].clone().view(self.num_envs,-1),
@@ -392,7 +393,7 @@ class Wr3Terrain(VecTask):
             base_vel
         ],dim=-1)
 
-        self.actor_obs_hist = torch.concatenate([self.actor_obs_hist[:,1:,:],actor_obs.unsqueeze(-1)],dim=-1)
+        self.actor_obs_hist = torch.concatenate([self.actor_obs_hist[:,1:,:],actor_obs.unsqueeze(1)],dim=1)
 
 
     def cal_heights_reward(self):
@@ -671,9 +672,9 @@ class Wr3Terrain(VecTask):
         default_Kd = torch.full((self.num_envs, self.num_dof, ), self.cfg["env"]["control"]["damping"],dtype=torch.float32,device=self.device)
 
         if len(rand_envs) > 0:
-            self.Kp[rand_envs] = default_Kp * \
+            self.Kp[rand_envs] = default_Kp[rand_envs] * \
                                  to_torch(np.random.uniform(0.5, 1.5, size=(len(rand_envs), self.num_dof)))
-            self.Kd[rand_envs] = default_Kd * \
+            self.Kd[rand_envs] = default_Kd[rand_envs] * \
                                  to_torch(np.random.uniform(0.5, 1.5, size=(len(rand_envs),self.num_dof)))
 
 

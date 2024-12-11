@@ -175,9 +175,9 @@ def launch_rlg_hydra(cfg: DictConfig):
         model_builder.register_network('amp', lambda **kwargs: amp_network_builder.AMPBuilder())
 
         from learning import rnn_agent, rnn_model, rnn_network_builder
-        runner.algo_factory.register_builder('a2c_rnn', lambda **kwargs : rnn_agent.RNNAgent(**kwargs))
         model_builder.register_model('rnn', lambda network, **kwargs: rnn_model.RNN(network))
         model_builder.register_network('rnn', lambda **kwargs: rnn_network_builder.RNNBuilder())
+        runner.algo_factory.register_builder('a2c_rnn', lambda **kwargs : rnn_agent.RNNAgent(**kwargs))
 
         return runner
 
