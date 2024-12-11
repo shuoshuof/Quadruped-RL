@@ -35,7 +35,7 @@ params:
     ppo: True
     multi_gpu: ${....multi_gpu}
     mixed_precision: True
-    normalize_input: True
+    normalize_input: False
     normalize_value: True
     normalize_advantage: True
     value_bootstrap: True

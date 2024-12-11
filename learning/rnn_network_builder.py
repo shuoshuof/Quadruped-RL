@@ -36,7 +36,7 @@ class RNNBuilder(NetworkBuilder):
 
             self.rnn_name = "gru"
             self.actor_rnn = self._build_rnn(self.rnn_name, actor_rnn_input_size, self.rnn_unit, self.rnn_layers)
-            actor_mlp_args = {"input_size": self.rnn_unit*self.rnn_layers + command_size, "units": self.actor_units, "activation": self.activation, 'dense_func' : torch.nn.Linear, "norm_func_name": self.normalization}
+            actor_mlp_args = {"input_size": self.rnn_unit + command_size, "units": self.actor_units, "activation": self.activation, 'dense_func' : torch.nn.Linear, "norm_func_name": self.normalization}
             self.actor_mlp = self._build_mlp(**actor_mlp_args)
             self.actor_mu = torch.nn.Linear(self.rnn_unit, actions_num)
 
@@ -44,7 +44,7 @@ class RNNBuilder(NetworkBuilder):
             self.critic_mlp = self._build_mlp(**critic_mlp_args)
             self.critic_value = torch.nn.Linear(self.rnn_unit, 1)
 
-            world_model_mlp_args = {"input_size": self.rnn_unit*self.rnn_layers, "units": self.world_model_units, "activation": self.activation, 'dense_func' : torch.nn.Linear, "norm_func_name": self.normalization}
+            world_model_mlp_args = {"input_size": self.rnn_unit, "units": self.world_model_units, "activation": self.activation, 'dense_func' : torch.nn.Linear, "norm_func_name": self.normalization}
             self.world_model_mlp = self._build_mlp(**world_model_mlp_args)
             self.world_model_out = torch.nn.Linear(self.world_model_units[-1], world_model_size)
 
@@ -68,7 +68,7 @@ class RNNBuilder(NetworkBuilder):
             world_model_input = obs[:, -self.world_model_size:]
 
             # TODO: check rnn is time first or batch first
-            actor_actor_rnn_out, _ = self.actor_rnn(actor_rnn_input.permute(1, 0, 2))
+            actor_actor_rnn_out, _ = self.actor_rnn(actor_rnn_input.permute(1, 0, 2), None)
 
             mu = self.actor_mu(self.actor_mlp(torch.cat([actor_actor_rnn_out[-1], command_input], dim=1)))
             value = self.critic_value(self.critic_mlp(torch.cat([critic_input, command_input], dim=1)))
