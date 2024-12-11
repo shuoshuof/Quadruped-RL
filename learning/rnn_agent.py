@@ -25,9 +25,16 @@ class RNNAgent(a2c_common.ContinuousA2CBase):
             'actions_num' : self.actions_num,
             'actor_rnn_len' : actor_rnn_len,
             'actor_rnn_input_size' : actor_rnn_input_size,
-            'value_size': critic_input_size,
+            'critic_input_size': critic_input_size,
             'command_size' : command_size,
             'world_model_size': world_model_size,
+
+            'obs_shape' : obs_shape,
+            'num_seqs' : None, #self.num_actors * self.num_agents,
+            'value_size': self.env_info.get('value_size',1),
+            'normalize_value' : self.normalize_value,
+            'normalize_input': False, #self.normalize_input,
+
         }
         
         self.model = self.network.build(build_config)

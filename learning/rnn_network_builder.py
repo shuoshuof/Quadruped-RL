@@ -31,22 +31,22 @@ class RNNBuilder(NetworkBuilder):
             self.world_model_size = world_model_size
             self.totoal_input_dim = self.actor_rnn_len * self.actor_rnn_input_size + self.critic_input_size + self.command_size + self.world_model_size 
 
-            super().__init__(self)
+            NetworkBuilder.BaseNetwork.__init__(self)
             self.load(params)
 
             self.rnn_name = "gru"
-            self.actor_rnn = self._build_rnn(self.rnn_name, actor_rnn_input_size, self.rnn_units, self.rnn_layers)
-            actor_mlp_args = {"input_size": self.rnn_units*self.rnn_layers + command_size, "units": self.actor_units, "activation": self.activation, "norm_func_name": self.normalization}
+            self.actor_rnn = self._build_rnn(self.rnn_name, actor_rnn_input_size, self.rnn_unit, self.rnn_layers)
+            actor_mlp_args = {"input_size": self.rnn_unit*self.rnn_layers + command_size, "units": self.actor_units, "activation": self.activation, 'dense_func' : torch.nn.Linear, "norm_func_name": self.normalization}
             self.actor_mlp = self._build_mlp(**actor_mlp_args)
-            self.actor_mu = torch.nn.Linear(self.units[-1], actions_num)
+            self.actor_mu = torch.nn.Linear(self.rnn_unit, actions_num)
 
-            critic_mlp_args = {"input_size": critic_input_size + command_size, "units": self.critic_units, "activation": self.activation, "norm_func_name": self.normalization}
+            critic_mlp_args = {"input_size": critic_input_size + command_size, "units": self.critic_units, "activation": self.activation, 'dense_func' : torch.nn.Linear, "norm_func_name": self.normalization}
             self.critic_mlp = self._build_mlp(**critic_mlp_args)
-            self.critic_value = torch.nn.Linear(self.units[-1], 1)
+            self.critic_value = torch.nn.Linear(self.rnn_unit, 1)
 
-            world_model_mlp_args = {"input_size": self.rnn_units*self.rnn_layers, "units": self.world_model_units, "activation": self.activation, "norm_func_name": self.normalization}
+            world_model_mlp_args = {"input_size": self.rnn_unit*self.rnn_layers, "units": self.world_model_units, "activation": self.activation, 'dense_func' : torch.nn.Linear, "norm_func_name": self.normalization}
             self.world_model_mlp = self._build_mlp(**world_model_mlp_args)
-            self.world_model_out = torch.nn.Linear(self.world_model_units, world_model_size)
+            self.world_model_out = torch.nn.Linear(self.world_model_units[-1], world_model_size)
 
             for m in self.modules():
                 if isinstance(m, nn.Linear):
@@ -89,7 +89,7 @@ class RNNBuilder(NetworkBuilder):
         def load(self, params):
 
             self.rnn_layers = params['rnn']['layers']
-            self.rnn_units = params['rnn']['units']
+            self.rnn_unit = params['rnn']['unit']
             
             self.actor_units = params['actor']['units']
             self.critic_units = params['critic']['units']
