@@ -94,7 +94,7 @@ env:
 
 
   baseInitState:
-    pos: [0.0, 0.0, 0.35] # x,y,z [m]
+    pos: [0.0, 0.0, 0.40] # x,y,z [m]
     rot: [0.0, 0.0, 0.0, 1.0] # x,y,z,w [quat]
     vLinear: [0.0, 0.0, 0.0]  # x,y,z [m/s]
     vAngular: [0.0, 0.0, 0.0]  # x,y,z [rad/s]
@@ -181,6 +181,8 @@ env:
     defaultDofDriveMode: 4 # see GymDofDriveModeFlags (0 is none, 1 is pos tgt, 2 is vel tgt, 4 effort)
 
   learn:
+    expectedHeight: 0.33
+
     allowKneeContacts: true
     # rewards
     terminalReward: 0.0
@@ -191,9 +193,9 @@ env:
     orientationRewardScale: -0.2 #-1.
     torqueRewardScale: -0.00002 # -0.000025
     jointAccRewardScale: -0.0005 # -0.0025
-    heightRewardScale: 0.3 #5
+    heightRewardScale: -1 #5
     feetAirTimeRewardScale:  1.0
-    kneeCollisionRewardScale: -0.25
+    kneeCollisionRewardScale: -1
     feetStumbleRewardScale: -0. #-2.0
     actionRateRewardScale: -0.01
 
