@@ -1,0 +1,13 @@
+# used to create the object
+defaults:
+  - Wr3Terrain.yaml
+
+
+name: Wr3TerrainLSTM
+use_rnn: True
+
+
+env:
+  numEnvs: ${resolve_default:4096,${...num_envs}}
+  numObservations: 45
+
