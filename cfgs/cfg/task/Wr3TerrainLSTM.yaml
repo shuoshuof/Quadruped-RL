@@ -4,7 +4,7 @@ defaults:
 
 
 name: Wr3TerrainLSTM
-use_rnn: True
+use_rnn: False
 
 
 env:
