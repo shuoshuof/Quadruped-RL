@@ -313,15 +313,15 @@ class Wr3Terrain(VecTask):
             self.gym.set_asset_rigid_shape_properties(anymal_asset, rigid_shape_prop)
             anymal_handle = self.gym.create_actor(env_handle, anymal_asset, start_pose, "wr3", i, 0, 0)
 
-            if self.randomize:
+            if self.randomize and self.randomization_params['mass']['randomize']:
                 body_props = self.gym.get_actor_rigid_body_properties(env_handle, anymal_handle)
                 base_idx = 0
-                rng_mass = [-2, 2]
-                rand_mass = np.random.uniform(rng_mass[0], rng_mass[1], size=(1,))
+                mass_random_range = self.randomization_params['mass']['mass_random_range']
+                rand_mass = np.random.uniform(mass_random_range[0], mass_random_range[1], size=(1,))
                 body_props[base_idx].mass += rand_mass
 
-                rng_com = [-0.10, 0.10]
-                rand_com = np.random.uniform(rng_com[0], rng_com[1], size=(3,))
+                com_offset_range = self.randomization_params['mass']['com_offset_range']
+                rand_com = np.random.uniform(com_offset_range[0], com_offset_range[1], size=(3,))
                 body_props[base_idx].com += gymapi.Vec3(*rand_com)
 
                 self.gym.set_actor_rigid_body_properties(env_handle, anymal_handle, body_props, recomputeInertia=True)
@@ -671,18 +671,20 @@ class Wr3Terrain(VecTask):
 
     def apply_randomizations(self, dr_params):
         super().apply_randomizations(dr_params)
-        if hasattr(self,"randomize_buf"):
-            rand_envs = torch.nonzero(torch.eq(self.randomize_buf, 0), as_tuple=False).squeeze(-1).tolist()
-        else:
-            rand_envs = torch.arange(self.num_envs, device=self.device)
-        default_Kp = torch.full((self.num_envs, self.num_dof, ), self.cfg["env"]["control"]["stiffness"],dtype=torch.float32,device=self.device)
-        default_Kd = torch.full((self.num_envs, self.num_dof, ), self.cfg["env"]["control"]["damping"],dtype=torch.float32,device=self.device)
+        if self.randomize and self.randomization_params['control']['randomize']:
+            control_random_range = self.randomization_params['control']['random_range']
+            if hasattr(self,"randomize_buf"):
+                rand_envs = torch.nonzero(torch.eq(self.randomize_buf, 0), as_tuple=False).squeeze(-1).tolist()
+            else:
+                rand_envs = torch.arange(self.num_envs, device=self.device)
+            default_Kp = torch.full((self.num_envs, self.num_dof, ), self.cfg["env"]["control"]["stiffness"],dtype=torch.float32,device=self.device)
+            default_Kd = torch.full((self.num_envs, self.num_dof, ), self.cfg["env"]["control"]["damping"],dtype=torch.float32,device=self.device)
 
-        if len(rand_envs) > 0:
-            self.Kp[rand_envs] = default_Kp[rand_envs] * \
-                                 to_torch(np.random.uniform(0.5, 1.5, size=(len(rand_envs), self.num_dof)))
-            self.Kd[rand_envs] = default_Kd[rand_envs] * \
-                                 to_torch(np.random.uniform(0.5, 1.5, size=(len(rand_envs),self.num_dof)))
+            if len(rand_envs) > 0:
+                self.Kp[rand_envs] = default_Kp[rand_envs] * \
+                                     to_torch(np.random.uniform(*control_random_range, size=(len(rand_envs), self.num_dof)))
+                self.Kd[rand_envs] = default_Kd[rand_envs] * \
+                                     to_torch(np.random.uniform(*control_random_range, size=(len(rand_envs),self.num_dof)))
 
 
 @torch.jit.script
