@@ -191,10 +191,11 @@ def launch_rlg_hydra(cfg: DictConfig):
 
     # dump config dict
     if not cfg.test:
+        assert cfg.experiment is not ''
         experiment_dir = os.path.join('runs', cfg.train.params.config.name +
-        '_{date:%d-%H-%M-%S}'.format(date=datetime.now()))
+        '_{date:%d-%H}'.format(date=datetime.now()))
 
-        os.makedirs(experiment_dir, exist_ok=True)
+        os.makedirs(experiment_dir, exist_ok=False)
         with open(os.path.join(experiment_dir, 'config.yaml'), 'w') as f:
             f.write(OmegaConf.to_yaml(cfg))
 
