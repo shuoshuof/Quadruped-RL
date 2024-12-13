@@ -17,3 +17,13 @@ task.env.control.actionScale
 
 train.params.config.seq_len
 
+Deploy:
+task=Wr3Deploy
+test=True
+task.env.numEnvs=1
+task.env.terrain.terrainType=plane
+checkpoint=runs/deploy_ckpt/Wr3TerrainMLP.pth
+task.env.useDefaultCommands=True
+headless=True
+
+
