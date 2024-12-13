@@ -174,6 +174,7 @@ env:
 
   urdfAsset:
     file: "wr3/wr3_sphere_feet.xml"
+#    file: "wr3/wr3_no_toe_nocol.xml"
     footName: calf #
     kneeName: thigh
     collapseFixedJoints: True
