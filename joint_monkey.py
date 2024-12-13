@@ -35,7 +35,9 @@ asset_descriptors = [
     AssetDesc("assets/wr3/wr3.urdf", False),
     AssetDesc("assets/wr3/wr3_no_toe.xml",True),
     AssetDesc("assets/wr3/wr3_no_toe_nocol.xml",True),
-
+    AssetDesc("assets/wr3/wr3_sphere_feet.xml",True),
+    AssetDesc("assets/wr3_v2/wr3_v2.urdf",False),
+    AssetDesc("assets/wr3_v2/wr3_v2_sphere_knee.xml",True),
 ]
 
 
@@ -128,8 +130,8 @@ speeds = np.zeros(num_dofs)
 for i in range(num_dofs):
     if has_limits[i]:
         if dof_types[i] == gymapi.DOF_ROTATION:
-            lower_limits[i] = clamp(lower_limits[i], -math.pi, math.pi)
-            upper_limits[i] = clamp(upper_limits[i], -math.pi, math.pi)
+            lower_limits[i] = clamp(lower_limits[i], -2*math.pi, 2*math.pi)
+            upper_limits[i] = clamp(upper_limits[i], -2*math.pi, 2*math.pi)
         # make sure our default position is in range
         if lower_limits[i] > 0.0:
             defaults[i] = lower_limits[i]
@@ -190,7 +192,7 @@ for i in range(num_envs):
 
     # add actor
     pose = gymapi.Transform()
-    pose.p = gymapi.Vec3(0.0, 1.32, 0.0)
+    pose.p = gymapi.Vec3(0.0, 0.32, 0.0)
     pose.r = gymapi.Quat(-0.707107, 0.0, 0.0, 0.707107)
 
     actor_handle = gym.create_actor(env, asset, pose, "actor", i, 1)
@@ -199,6 +201,13 @@ for i in range(num_envs):
     # set default DOF positions
     gym.set_actor_dof_states(env, actor_handle, dof_states, gymapi.STATE_ALL)
 
+# cal total mass of actor
+body_props = gym.get_actor_rigid_body_properties(envs[0], actor_handles[0])
+total_mass = 0
+for i in range(len(body_props)):
+    total_mass += body_props[i].mass
+print("asset total mas:", total_mass)
+
 # joint animation states
 ANIM_SEEK_LOWER = 1
 ANIM_SEEK_UPPER = 2
@@ -206,7 +215,7 @@ ANIM_SEEK_DEFAULT = 3
 ANIM_FINISHED = 4
 
 # initialize animation state
-anim_state = ANIM_SEEK_LOWER
+anim_state = ANIM_SEEK_UPPER
 current_dof = 0
 print("Animating DOF %d ('%s')" % (current_dof, dof_names[current_dof]))
 

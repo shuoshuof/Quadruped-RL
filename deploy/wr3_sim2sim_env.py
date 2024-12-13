@@ -52,7 +52,7 @@ class Wr3MujocoEnv(BaseDeployEnv):
 
         self.num_height_points = 140
 
-        self.scene_path = 'assets/wr3/scene.xml'
+        self.scene_path = 'assets/wr3_v2/scene.xml'
 
         self.robot_start_poses = robot_start_poses if (robot_start_poses is not None) else self.cfg["env"]["defaultJointAngles"]
         self.robot_base_state = robot_base_state if (robot_base_state is not None) else self.cfg["env"]['baseInitState']
@@ -176,13 +176,13 @@ class Wr3MujocoEnv(BaseDeployEnv):
         action = self.get_action()
 
         obs_tensor = torch.concatenate([
-            base_lin_vel*self.lin_vel_scale,
+            # base_lin_vel*self.lin_vel_scale,
             base_ang_vel*self.ang_vel_scale,
             projected_gravity,
             self.commands[:,:3]*self.commands_scale,
             dof_pos.unsqueeze(0)*self.dof_pos_scale,
             dof_vel.unsqueeze(0)*self.dof_vel_scale,
-            heights.unsqueeze(0),
+            # heights.unsqueeze(0),
             action,
         ],dim=-1)
         assert obs_tensor.shape == (self.num_envs,self.num_obs)

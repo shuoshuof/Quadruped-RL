@@ -365,6 +365,7 @@ class Wr3Terrain(VecTask):
                 self.actions
             ],dim=-1)
             # 3 + 42 = 45
+            #TODO: denoise in critic obs
             critic_obs = torch.concatenate([
                 self.base_lin_vel * self.lin_vel_scale,
                 actor_obs.clone(),
@@ -390,6 +391,7 @@ class Wr3Terrain(VecTask):
 
             self.actor_obs_hist = torch.concatenate([self.actor_obs_hist[:,1:,:],actor_obs.unsqueeze(1)],dim=1)
         else:
+            # 45
             self.obs_buf = torch.concatenate([
                 # self.base_lin_vel * self.lin_vel_scale,
                 self.base_ang_vel * self.ang_vel_scale,

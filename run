@@ -3,11 +3,17 @@ cd /storage/liujinxin/code/Quadruped-RL/
 conda activate dog
 nvidia-smi
 
-CUDA_VISIBLE_DEVICES=1 python train.py task=Wr3Terrain task.env.control.decimation=4 task.task.randomize=True task.env.terrain.terrainType=simple task.env.numEnvs=16384 max_iterations=10000 headless=True
+CUDA_VISIBLE_DEVICES=0 python train.py task.env.control.decimation=4 task.task.randomize=True task.env.terrain.terrainType=simple task.env.numEnvs=16384 max_iterations=20000 headless=True experiment=
+
+task=Wr3Terrain
 
 task.env.learn.heightRewardScale
 task.env.learn.allowKneeContacts
 task.env.learn.kneeCollisionRewardScale
 task.env.learn.orientationRewardScale
+task.env.learn.expectedHeight
 task.env.control.actionScale
+
+
+train.params.config.seq_len
 
