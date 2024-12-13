@@ -54,7 +54,8 @@ params:
   load_path: ${...checkpoint} # path to the checkpoint to load
 
   config:
-    name: ${resolve_default:Wr3TerrainLSTM,${....experiment}}
+#    name: ${resolve_default:Wr3TerrainLSTM,${....experiment}}
+    name: ${....experiment}_Wr3TerrainLSTM
     full_experiment_name: ${.name}
     env_name: rlgpu
     ppo: True
