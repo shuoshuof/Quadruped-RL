@@ -28,17 +28,17 @@
         <body name="FL_hip_link" pos="0.135 0.05 0">
             <inertial pos="0.057196 0.003387 -8.5e-05" quat="0.512282 0.516274 0.485122 0.485474" mass="0.838" diaginertia="0.00104664 0.000737277 0.00058853" />
             <joint name="FL_hip_joint" pos="0 0 0" axis="1 0 0" limited="true" range="-0.69813 0.69813" />
-            <geom type="mesh" contype="0" conaffinity="0" group="1" mesh="FL_hip_link" />
+<!--            <geom type="mesh" contype="0" conaffinity="0" group="1" mesh="FL_hip_link" />-->
             <geom type="mesh" mesh="FL_hip_link" />
             <body name="FL_thigh_link" pos="0.0625 0.02 0">
                 <inertial pos="-0.001565 0.046615 -0.027916" quat="0.63718 -0.0578282 0.0378488 0.76761" mass="1.059" diaginertia="0.00482696 0.00453766 0.000725459" />
                 <joint name="FL_thigh_joint" pos="0 0 0" axis="0 1 0" limited="true" range="-0.66323 2.79253" />
-                <geom type="mesh" contype="0" conaffinity="0" group="1" mesh="FL_thigh_link" />
+<!--                <geom type="mesh" contype="0" conaffinity="0" group="1" mesh="FL_thigh_link" />-->
                 <geom type="mesh" mesh="FL_thigh_link" />
                 <body name="FL_calf_link" pos="0 0.0652 -0.213">
                     <inertial pos="0.008159 0.000159 -0.10787" quat="0.713411 0.00272894 0.00401625 0.700729" mass="0.125" diaginertia="0.000955627 0.00094351 2.87627e-05" />
                     <joint name="FL_calf_joint" pos="0 0 0" axis="0 1 0" limited="true" range="-2.7053 -0.89012" />
-                    <geom type="mesh" contype="0" conaffinity="0" group="1" mesh="FL_calf_link" />
+<!--                    <geom type="mesh" contype="0" conaffinity="0" group="1" mesh="FL_calf_link" />-->
                     <geom type="mesh" mesh="FL_calf_link" />
                     <body name="FL_toe_link" pos="0.0 0 -0.225">
                         <joint name="FL_toe_joint" axis="1 0 0" limited="true" range="-0.1 0.1"/>
