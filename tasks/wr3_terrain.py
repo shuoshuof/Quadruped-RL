@@ -138,6 +138,7 @@ class Wr3Terrain(VecTask):
                                    requires_grad=False)
         self.actions = torch.zeros(self.num_envs, self.num_actions, dtype=torch.float, device=self.device,
                                    requires_grad=False)
+        self.actions_hist = torch.zeros(self.num_envs, 5 , self.num_actions, dtype=torch.float, device=self.device)
         self.last_actions = torch.zeros(self.num_envs, self.num_actions, dtype=torch.float, device=self.device,
                                         requires_grad=False)
         self.feet_air_time = torch.zeros(self.num_envs, 4, dtype=torch.float, device=self.device, requires_grad=False)
@@ -316,14 +317,21 @@ class Wr3Terrain(VecTask):
 
             if self.randomize and self.randomization_params['mass']['randomize']:
                 body_props = self.gym.get_actor_rigid_body_properties(env_handle, anymal_handle)
-                base_idx = 0
-                mass_random_range = self.randomization_params['mass']['mass_random_range']
-                rand_mass = np.random.uniform(mass_random_range[0], mass_random_range[1], size=(1,))
-                body_props[base_idx].mass += rand_mass
-
-                com_offset_range = self.randomization_params['mass']['com_offset_range']
-                rand_com = np.random.uniform(com_offset_range[0], com_offset_range[1], size=(3,))
-                body_props[base_idx].com += gymapi.Vec3(*rand_com)
+                trunk_mass_random_range = self.randomization_params['mass']['trunk_mass_random_range']
+                trunk_com_offset_range = self.randomization_params['mass']['trunk_com_offset_range']
+                limb_mass_random_range = self.randomization_params['mass']['limb_mass_random_range']
+                limb_com_offset_range = self.randomization_params['mass']['limb_com_offset_range']
+                for body_idx in range(self.num_bodies):
+                    if body_idx == self.base_index:
+                        mass_random_range = trunk_mass_random_range
+                        com_offset_range = trunk_com_offset_range
+                    else:
+                        mass_random_range = limb_mass_random_range
+                        com_offset_range = limb_com_offset_range
+                    rand_mass = np.random.uniform(mass_random_range[0], mass_random_range[1], size=(1,))
+                    body_props[body_idx].mass += rand_mass
+                    rand_com = np.random.uniform(com_offset_range[0], com_offset_range[1], size=(3,))
+                    body_props[body_idx].com += gymapi.Vec3(*rand_com)
 
                 self.gym.set_actor_rigid_body_properties(env_handle, anymal_handle, body_props, recomputeInertia=True)
 
@@ -530,6 +538,7 @@ class Wr3Terrain(VecTask):
             self.commands[:, 0] = 1
 
         self.actions[env_ids] = 0.
+        self.actions_hist[env_ids] = 0.
         self.last_actions[env_ids] = 0.
         self.last_dof_vel[env_ids] = 0.
         self.feet_air_time[env_ids] = 0.
@@ -561,7 +570,10 @@ class Wr3Terrain(VecTask):
 
     def pre_physics_step(self, actions):
         # TODO: actions should be clipped?
-        self.actions = actions.clone().to(self.device)
+        self.actions_hist = torch.concatenate([self.actions_hist[:, 1:], actions.clone().unsqueeze(1)], dim=1)
+        delay_indices = torch.randint(0, 5, (self.num_envs,), device=self.device)
+        self.actions = self.actions_hist[torch.arange(self.num_envs), delay_indices]
+        # self.actions = actions.clone().to(self.device)
         for i in range(self.decimation):
             torques = torch.clip(self.Kp * (
                         self.action_scale * self.actions + self.default_dof_pos - self.dof_pos) - self.Kd * self.dof_vel,
