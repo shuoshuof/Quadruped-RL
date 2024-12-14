@@ -55,9 +55,10 @@ class Wr3DeployEnv(BaseDeployEnv):
         self.action_scale = self.cfg["env"]["control"]["actionScale"]
 
         self.num_height_points = 140
-        
-    def start_control_thread(self):
+
         self._init_SDK()
+    def start_control_thread(self):
+
         control_thread = threading.Thread(target=self._control_thread)
         control_thread.setDaemon(True)
         control_thread.start()
@@ -96,7 +97,7 @@ class Wr3DeployEnv(BaseDeployEnv):
         self.motor_cmd.send_data()
         print("_init_SDK:", state_dict)
 
-    def _set_motor_pd(self, kp=0., kd=0.):
+    def _set_motor_pd(self, kp=0., kd=0., send_data=True):
         state_dict = self._acquire_robot_state()
         dof_pos = state_dict['dof_pos'][self.sim2real_dof_map]
         for i in range(self.num_dofs):
@@ -104,7 +105,9 @@ class Wr3DeployEnv(BaseDeployEnv):
             self.motor_cmd.cmd[i].kd = kd
             self.motor_cmd.cmd[i].mode = 10
             self.motor_cmd.cmd[i].pos = dof_pos[i]
-        self.motor_cmd.send_data()
+        
+        if send_data:
+            self.motor_cmd.send_data()
 
     def _reset_robot(self):
         self._set_motor_pd(kp=20., kd=0.2)
@@ -116,8 +119,8 @@ class Wr3DeployEnv(BaseDeployEnv):
             self._apply_action_to_robot(actions, state_dict, clip_action=True, clip_action_threshold=0.01)
             time.sleep(0.01)
             if np.all(np.abs(state_dict["dof_pos"] - self.default_dof_pos) < 1e-1):
-                self._set_motor_pd(kp=self.Kp,kd=self.Kd)
-                raise EOFError
+                self._set_motor_pd(kp=self.Kp, kd=self.Kd, send_data=False)
+                # raise EOFError
                 break
 
     def _control_thread(self):
@@ -131,7 +134,7 @@ class Wr3DeployEnv(BaseDeployEnv):
             self.update_state(state_dict)
 
             actions = self.get_action()
-            self._apply_action_to_robot(actions, state_dict)
+            self._apply_action_to_robot(actions, state_dict,clip_action=True)
 
             rate.sleep()
             end = time.time()
@@ -189,7 +192,7 @@ class Wr3DeployEnv(BaseDeployEnv):
             target_dof_pos = np.clip(target_dof_pos, dof_pos - clip_action_threshold, dof_pos + clip_action_threshold)
         # TODO: motor order may be different with the sim
         target_dof_pos = target_dof_pos[self.sim2real_dof_map]
-        print(target_dof_pos)
+        # print(target_dof_pos)
         for i in range(self.num_dofs):
             self.motor_cmd.cmd[i].pos = target_dof_pos[i]
 
@@ -221,16 +224,16 @@ class Wr3DeployEnv(BaseDeployEnv):
 
         if self.use_default_commands:
             self.commands *= 0
-            self.commands[:, 0] = 1
+            self.commands[:, 0] = 0
 
         obs_tensor = torch.concatenate([
-            base_lin_vel * self.lin_vel_scale,
+            # base_lin_vel * self.lin_vel_scale,
             base_ang_vel * self.ang_vel_scale,
             projected_gravity,
             self.commands[:, :3] * self.commands_scale,
             dof_pos.unsqueeze(0) * self.dof_pos_scale,
             dof_vel.unsqueeze(0) * self.dof_vel_scale,
-            heights.unsqueeze(0),
+            # heights.unsqueeze(0),
             action,
         ], dim=-1)
 
@@ -253,26 +256,26 @@ if __name__ == '__main__':
 
     core.global_hydra.GlobalHydra.instance().clear()
     hydra.initialize(config_path='../cfgs/cfg/task/')
-    cfg = hydra.compose(config_name='Wr3Deploy.yaml')
+    deploy_cfg = hydra.compose(config_name='Wr3Deploy.yaml')
 
-    deploy_env = Wr3DeployEnv(cfg)
+    deploy_env = Wr3DeployEnv(deploy_cfg)
 
     # core.global_hydra.GlobalHydra.instance().clear()
     # hydra.initialize(config_path='../cfgs/cfg/task/')
-    # cfg = hydra.compose(config_name='Wr3Mujoco.yaml')
+    # mujoco_cfg = hydra.compose(config_name='Wr3Mujoco.yaml')
     #
-    # mujoco_env = Wr3MujocoEnv(cfg)
+    # mujoco_env = Wr3MujocoEnv(mujoco_cfg)
+    # # mujoco_env.start_control_thread()
     # rate = RateLimiter(frequency=100, warn=True)
     # while True:
-    #
     #     state_dict = deploy_env._acquire_robot_state()
-    #
     #     if "base_pos" is not state_dict.keys():
     #         # x,y,z,w
     #         state_dict["base_pos"] = np.array([0., 0., 0.5], dtype=np.float32)
     #     # state_dict["base_quat"] = state_dict["base_quat"][[3,0,1,2]]
     #     print(np.round(state_dict["base_quat"], 4))
     #     mujoco_env._apply_state_in_mujoco(state_dict)
+    #
     #     rate.sleep()
 
     deploy_env.start_control_thread()

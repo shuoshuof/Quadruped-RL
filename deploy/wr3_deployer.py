@@ -50,9 +50,11 @@ class Wr3Deployer(PpoPlayerContinuous):
             import time
             while True:
                 start = time.time()
+                obses = self.env.get_obs()
                 action = self.get_action(obses, is_deterministic)
 
-                obses, r, done, info = self.env_step(self.env, action)
+
+                self.env_step(self.env, action)
                 rate.sleep()
                 end = time.time()
                 # print(end - start)

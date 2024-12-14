@@ -43,7 +43,7 @@ class Wr3MujocoEnv(BaseDeployEnv):
         self.use_default_commands = self.cfg["env"]["useDefaultCommands"]
 
         if self.use_default_commands:
-            self.commands[:, 0] = 1
+            self.commands[:, 0] = 0
         # control
         self.default_dof_pos = np.zeros(self.num_dofs, dtype=np.float32)
         self.Kp = self.cfg["env"]["control"]["stiffness"]
@@ -52,16 +52,17 @@ class Wr3MujocoEnv(BaseDeployEnv):
 
         self.num_height_points = 140
 
-        self.scene_path = 'assets/wr3_v2/scene.xml'
+        self.scene_path = 'assets/wr3/scene.xml'
 
         self.robot_start_poses = robot_start_poses if (robot_start_poses is not None) else self.cfg["env"]["defaultJointAngles"]
         self.robot_base_state = robot_base_state if (robot_base_state is not None) else self.cfg["env"]['baseInitState']
 
         self.record_video = self.cfg['record']['record_video']
 
-    def start_control_thread(self):
         self._init_sim()
         self._launch_viewer()
+
+    def start_control_thread(self):
         sim_thread = threading.Thread(target=self._run_sim_thread)
         sim_thread.setDaemon(True)
         sim_thread.start()
