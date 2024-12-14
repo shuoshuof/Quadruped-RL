@@ -87,6 +87,7 @@ class Wr3Terrain(VecTask):
         # # self.Kd = self.cfg["env"]["control"]["damping"]
         self.Kp = torch.full((cfg["env"]["numEnvs"], cfg["env"]["numActions"]), self.cfg["env"]["control"]["stiffness"],dtype=torch.float32,device='cuda:0')
         self.Kd = torch.full((cfg["env"]["numEnvs"], cfg["env"]["numActions"]), self.cfg["env"]["control"]["damping"],dtype=torch.float32,device='cuda:0')
+        self.max_torque = self.cfg["env"]["control"]["maxTorque"]
 
         self.curriculum = self.cfg["env"]["terrain"]["curriculum"]
 
@@ -564,7 +565,7 @@ class Wr3Terrain(VecTask):
         for i in range(self.decimation):
             torques = torch.clip(self.Kp * (
                         self.action_scale * self.actions + self.default_dof_pos - self.dof_pos) - self.Kd * self.dof_vel,
-                                 -80., 80.)
+                                 -self.max_torque, self.max_torque)
             self.gym.set_dof_actuation_force_tensor(self.sim, gymtorch.unwrap_tensor(torques))
             self.torques = torques.view(self.torques.shape)
             self.gym.simulate(self.sim)

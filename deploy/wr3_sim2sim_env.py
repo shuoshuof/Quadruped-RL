@@ -43,16 +43,17 @@ class Wr3MujocoEnv(BaseDeployEnv):
         self.use_default_commands = self.cfg["env"]["useDefaultCommands"]
 
         if self.use_default_commands:
-            self.commands[:, 0] = 0
+            self.commands[:, 0] = 1.
         # control
         self.default_dof_pos = np.zeros(self.num_dofs, dtype=np.float32)
         self.Kp = self.cfg["env"]["control"]["stiffness"]
         self.Kd = self.cfg["env"]["control"]["damping"]
+        self.max_torque = self.cfg["env"]["control"]["maxTorque"]
         self.action_scale = self.cfg["env"]["control"]["actionScale"]
 
         self.num_height_points = 140
 
-        self.scene_path = 'assets/wr3/scene.xml'
+        self.scene_path = self.cfg["env"]["mujoco_scene_path"]
 
         self.robot_start_poses = robot_start_poses if (robot_start_poses is not None) else self.cfg["env"]["defaultJointAngles"]
         self.robot_base_state = robot_base_state if (robot_base_state is not None) else self.cfg["env"]['baseInitState']
@@ -194,7 +195,7 @@ class Wr3MujocoEnv(BaseDeployEnv):
         dof_pos = state_dict['dof_pos']
         actions = actions.squeeze(0).cpu().numpy()
         torques = self.Kp * (self.action_scale * actions + self.default_dof_pos - dof_pos) - self.Kd * dof_vel
-        torques_clipped = np.clip(torques,-80.,80.)
+        torques_clipped = np.clip(torques,-self.max_torque,self.max_torque)
         assert self.mj_data.ctrl.shape == (12,)
         assert torques_clipped.shape == (12,)
         self.mj_data.ctrl[:12] = torques_clipped

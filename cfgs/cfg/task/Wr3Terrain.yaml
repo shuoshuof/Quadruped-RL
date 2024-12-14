@@ -113,6 +113,7 @@ env:
     actionScale: 4
     # decimation: Number of control action updates @ sim DT per policy DT
     decimation: 4
+    maxTorque: 20.0
 
 #    stiffness: 80.0  # [N*m/rad]
 #    damping: 0.5     # [N*m*s/rad]
@@ -171,6 +172,23 @@ env:
     RR_hip_joint: 0.362
     RR_thigh_joint: 1.11
     RR_calf_joint: -2.71
+  dofLimits:
+    FL_hip_joint: [-0.69813, 0.69813]
+    FL_thigh_joint: [-0.66323, 2.79253]
+    FL_calf_joint: [-2.7053, -0.89012]
+
+    FR_hip_joint: [-0.69813, 0.69813]
+    FR_thigh_joint: [-0.66323, 2.79253]
+    FR_calf_joint: [-2.7053, -0.89012]
+
+    RL_hip_joint: [-0.69813, 0.69813]
+    RL_thigh_joint: [-0.66323, 2.79253]
+    RL_calf_joint: [-2.7053, -0.89012]
+
+    RR_hip_joint: [-0.69813, 0.69813]
+    RR_thigh_joint: [-0.66323, 2.79253]
+    RR_calf_joint: [-2.7053, -0.89012]
+
 
   urdfAsset:
 #    file: "wr3/wr3_sphere_feet.xml"

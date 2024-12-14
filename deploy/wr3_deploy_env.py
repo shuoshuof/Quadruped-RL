@@ -52,6 +52,7 @@ class Wr3DeployEnv(BaseDeployEnv):
 
         self.Kp = self.cfg["env"]["control"]["stiffness"]
         self.Kd = self.cfg["env"]["control"]["damping"]
+        self.max_torque = self.cfg["env"]["control"]["maxTorque"]
         self.action_scale = self.cfg["env"]["control"]["actionScale"]
 
         self.num_height_points = 140
@@ -116,7 +117,7 @@ class Wr3DeployEnv(BaseDeployEnv):
             self.update_state(state_dict)
 
             actions = torch.zeros((self.num_envs, self.num_actions), dtype=torch.float32, device=self.device)
-            self._apply_action_to_robot(actions, state_dict, clip_action=True, clip_action_threshold=0.01)
+            self._apply_action_to_robot(actions, state_dict, torque_threshold=0.5)
             time.sleep(0.01)
             if np.all(np.abs(state_dict["dof_pos"] - self.default_dof_pos) < 1e-1):
                 self._set_motor_pd(kp=self.Kp, kd=self.Kd, send_data=False)
@@ -134,7 +135,7 @@ class Wr3DeployEnv(BaseDeployEnv):
             self.update_state(state_dict)
 
             actions = self.get_action()
-            self._apply_action_to_robot(actions, state_dict,clip_action=True)
+            self._apply_action_to_robot(actions, state_dict)
 
             rate.sleep()
             end = time.time()
@@ -182,20 +183,29 @@ class Wr3DeployEnv(BaseDeployEnv):
 
         return state_dict
 
-    def _apply_action_to_robot(self, actions, state_dict, clip_action=False, clip_action_threshold=0.01):
+    def _apply_action_to_robot(self, actions, state_dict, torque_threshold=None):
         dof_vel = state_dict['dof_vel']
         dof_pos = state_dict['dof_pos']
         actions = actions.squeeze(0).cpu().numpy()
-        target_dof_pos = self.action_scale * actions + self.default_dof_pos
-        # TODO: add protection for out of bound
-        if clip_action:
-            target_dof_pos = np.clip(target_dof_pos, dof_pos - clip_action_threshold, dof_pos + clip_action_threshold)
-        # TODO: motor order may be different with the sim
-        target_dof_pos = target_dof_pos[self.sim2real_dof_map]
-        # print(target_dof_pos)
-        for i in range(self.num_dofs):
-            self.motor_cmd.cmd[i].pos = target_dof_pos[i]
+        # target_dof_pos = self.action_scale * actions + self.default_dof_pos
 
+        torque = self.Kp*(self.action_scale * actions + self.default_dof_pos - dof_pos) - self.Kd * dof_vel
+        max_torque = torque_threshold if torque_threshold is not None else self.max_torque
+        clipped_torque = np.clip(torque, -max_torque, max_torque)
+        clipped_target_dof_pos = (clipped_torque + self.Kd * dof_vel) / self.Kp
+
+        # # TODO: add protection for out of bound
+        # if clip_action:
+        #     target_dof_pos = np.clip(target_dof_pos, dof_pos - clip_action_threshold, dof_pos + clip_action_threshold)
+        # # TODO: motor order may be different with the sim
+        # target_dof_pos = target_dof_pos[self.sim2real_dof_map]
+        # # print(target_dof_pos)
+        # for i in range(self.num_dofs):
+        #     self.motor_cmd.cmd[i].pos = target_dof_pos[i]
+
+        clipped_target_dof_pos = clipped_target_dof_pos[self.sim2real_dof_map]
+        for i in range(self.num_dofs):
+            self.motor_cmd.cmd[i].pos = clipped_target_dof_pos[i]
         self.motor_cmd.send_data()
 
     def get_obs(self):

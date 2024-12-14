@@ -10,6 +10,8 @@ record:
 env:
   numEnvs: 1
 
+  mujoco_scene_path: 'assets/wr3_v2/scene.xml'
+
 #  control:
 #    # PD Drive parameters:
 #    stiffness: 20.  # [N*m/rad]

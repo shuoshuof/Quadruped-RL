@@ -1,6 +1,8 @@
 <mujoco model="wr3">
   <compiler angle="radian"/>
-  <include file="wr3_sphere_feet.xml" />
+<!--  <include file="wr3_sphere_feet.xml" />-->
+  <include file="wr3_no_toe_nocol.xml" />
+
   <!-- <include file="wr3_v2.urdf" /> -->
 
 
