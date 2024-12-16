@@ -36,6 +36,7 @@ class Wr3Deployer(PpoPlayerContinuous):
         need_init_rnn = self.is_rnn
         from deploy.wr3_deploy_env import Wr3DeployEnv
         from deploy.wr3_sim2sim_env import Wr3MujocoEnv
+        # from typing import Union
         # self.env: Wr3DeployEnv
 
         for _ in range(n_games):
@@ -53,9 +54,8 @@ class Wr3Deployer(PpoPlayerContinuous):
             import time
             while True:
                 start = time.time()
-                obses = self.env.get_obs()
+                obses = self.env.get_obs(is_policy_input=True)
                 action = self.get_action(obses, is_deterministic)
-
 
                 self.env_step(self.env, action)
                 rate.sleep()

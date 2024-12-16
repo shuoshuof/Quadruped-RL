@@ -44,6 +44,7 @@ class BaseDeployEnv(ABC):
         self.obs_buf = torch.zeros((self.num_envs,self.num_obs),device=self.device,dtype=torch.float32)
         self.action_buf = torch.zeros((self.num_envs,self.num_actions),device=self.device,dtype=torch.float32)
         self.state_dict = {}
+        self._policy_input = {}
     def _run_command_thread(self):
         from pynput import keyboard
         pressed_keys = set()

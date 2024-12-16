@@ -175,11 +175,11 @@ class Wr3DeployEnv(BaseDeployEnv):
         )
         return state_dict
 
-    def _apply_action_to_robot(self, actions, dof_pos, dof_vel, torque_threshold=None):
-        # TODO: dof_pos, dof_vel
-        # state_dict = self.get_state()
-        # dof_vel = state_dict['dof_vel']
-        # dof_pos = state_dict['dof_pos']
+    def _apply_action_to_robot(self, actions, torque_threshold=None):
+        # ensure the same state used for policy input and action calculation
+        state_dict = self.policy_input
+        dof_vel = state_dict['dof_vel']
+        dof_pos = state_dict['dof_pos']
         actions = actions.squeeze(0).cpu().numpy()
         # target_dof_pos = self.action_scale * actions + self.default_dof_pos
 
@@ -202,8 +202,10 @@ class Wr3DeployEnv(BaseDeployEnv):
             self.motor_cmd.cmd[i].pos = clipped_target_dof_pos[i]
         self.motor_cmd.send_data()
 
-    def get_obs(self):
+    def get_obs(self, is_policy_input=False):
         state_dict = self.get_state()
+        if is_policy_input:
+            self.update_policy_input(state_dict)
         action = self.get_action()
         base_quat = torch.from_numpy(state_dict['base_quat']).to(self.device)
 
@@ -247,6 +249,12 @@ class Wr3DeployEnv(BaseDeployEnv):
     def step(self, action):
         self._apply_action_to_robot(action)
         return super().step(action)
+    def update_policy_input(self, policy_input):
+        self._policy_input = policy_input
+    @property
+    def policy_input(self):
+        return copy.deepcopy(self._policy_input)
+
 
 @torch.jit.script
 def wrap_to_pi(angles):
