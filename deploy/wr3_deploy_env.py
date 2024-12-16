@@ -124,7 +124,7 @@ class Wr3DeployEnv(BaseDeployEnv):
                 break
 
     def _update_state_thread(self):
-        rate = RateLimiter(frequency=1000, warn=True)
+        rate = RateLimiter(frequency=300, warn=True)
         while True:
             start = time.time()
             state_dict = self._acquire_robot_state()
@@ -175,11 +175,15 @@ class Wr3DeployEnv(BaseDeployEnv):
         )
         return state_dict
 
-    def _apply_action_to_robot(self, actions, torque_threshold=None):
+    def _apply_action_to_robot(self, actions, use_policy_input=False,torque_threshold=None):
         # ensure the same state used for policy input and action calculation
-        state_dict = self.policy_input
+        if use_policy_input:
+            state_dict = self.policy_input
+        else:
+            state_dict = self.get_state()
         dof_vel = state_dict['dof_vel']
         dof_pos = state_dict['dof_pos']
+
         actions = actions.squeeze(0).cpu().numpy()
         # target_dof_pos = self.action_scale * actions + self.default_dof_pos
 
@@ -247,7 +251,7 @@ class Wr3DeployEnv(BaseDeployEnv):
         assert obs_tensor.shape == (self.num_envs, self.num_obs)
         return obs_tensor
     def step(self, action):
-        self._apply_action_to_robot(action)
+        self._apply_action_to_robot(action,use_policy_input=True)
         return super().step(action)
     def update_policy_input(self, policy_input):
         self._policy_input = policy_input
@@ -275,22 +279,22 @@ if __name__ == '__main__':
 
     deploy_env = Wr3DeployEnv(deploy_cfg)
 
-    # core.global_hydra.GlobalHydra.instance().clear()
-    # hydra.initialize(config_path='../cfgs/cfg/task/')
-    # mujoco_cfg = hydra.compose(config_name='Wr3Mujoco.yaml')
-    #
-    # mujoco_env = Wr3MujocoEnv(mujoco_cfg)
-    # # mujoco_env.start_control_thread()
-    # rate = RateLimiter(frequency=100, warn=True)
-    # while True:
-    #     state_dict = deploy_env._acquire_robot_state()
-    #     if "base_pos" is not state_dict.keys():
-    #         # x,y,z,w
-    #         state_dict["base_pos"] = np.array([0., 0., 0.5], dtype=np.float32)
-    #     # state_dict["base_quat"] = state_dict["base_quat"][[3,0,1,2]]
-    #     print(np.round(state_dict["base_quat"], 4))
-    #     mujoco_env._apply_state_in_mujoco(state_dict)
-    #
-    #     rate.sleep()
+    core.global_hydra.GlobalHydra.instance().clear()
+    hydra.initialize(config_path='../cfgs/cfg/task/')
+    mujoco_cfg = hydra.compose(config_name='Wr3Mujoco.yaml')
 
-    deploy_env.start_control_thread()
+    mujoco_env = Wr3MujocoEnv(mujoco_cfg)
+    # mujoco_env.start_control_thread()
+    rate = RateLimiter(frequency=100, warn=True)
+    while True:
+        state_dict = deploy_env._acquire_robot_state()
+        if "base_pos" is not state_dict.keys():
+            # x,y,z,w
+            state_dict["base_pos"] = np.array([0., 0., 0.5], dtype=np.float32)
+        # state_dict["base_quat"] = state_dict["base_quat"][[3,0,1,2]]
+        print(np.round(state_dict["base_quat"], 4))
+        mujoco_env._apply_state_in_mujoco(state_dict)
+
+        rate.sleep()
+
+    # deploy_env.start_control_thread()
