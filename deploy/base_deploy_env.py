@@ -74,7 +74,7 @@ class BaseDeployEnv(ABC):
         with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
             listener.join()
     @abstractmethod
-    def get_obs(self):
+    def get_obs(self,*args,**kwargs):
         raise NotImplementedError
 
     def update_state(self,state_dict):

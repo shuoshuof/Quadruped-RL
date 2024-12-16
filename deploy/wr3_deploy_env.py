@@ -49,20 +49,19 @@ class Wr3DeployEnv(BaseDeployEnv):
         # self.default_dof_pos = np.array(self.cfg["env"]["defaultJointAngles"],dtype=np.float32)
         self.default_dof_pos = np.array([angle for angle in dict(self.cfg["env"]["defaultJointAngles"]).values()],
                                         dtype=np.float32)
-
-        self.Kp = self.cfg["env"]["control"]["stiffness"]
-        self.Kd = self.cfg["env"]["control"]["damping"]
+        self.default_Kp = self.cfg["env"]["control"]["stiffness"]
+        self.default_Kd = self.cfg["env"]["control"]["damping"]
+        self.Kp = copy.deepcopy(self.default_Kp)
+        self.Kd = copy.deepcopy(self.default_Kd)
         self.max_torque = self.cfg["env"]["control"]["maxTorque"]
         self.action_scale = self.cfg["env"]["control"]["actionScale"]
 
         self.num_height_points = 140
 
         self._init_SDK()
-    def start_control_thread(self):
-
-        control_thread = threading.Thread(target=self._control_thread)
-        control_thread.setDaemon(True)
-        control_thread.start()
+        self.state_thread = threading.Thread(target=self._update_state_thread)
+        self.state_thread.daemon = True
+        self.state_thread.start()
 
     def _init_SDK(self):
         self.receiver = DataReceiver()
@@ -99,11 +98,13 @@ class Wr3DeployEnv(BaseDeployEnv):
         print("_init_SDK:", state_dict)
 
     def _set_motor_pd(self, kp=0., kd=0., send_data=True):
+        self.Kp = kp
+        self.Kd = kd
         state_dict = self._acquire_robot_state()
         dof_pos = state_dict['dof_pos'][self.sim2real_dof_map]
         for i in range(self.num_dofs):
-            self.motor_cmd.cmd[i].kp = kp
-            self.motor_cmd.cmd[i].kd = kd
+            self.motor_cmd.cmd[i].kp = self.Kp
+            self.motor_cmd.cmd[i].kd = self.Kd
             self.motor_cmd.cmd[i].mode = 10
             self.motor_cmd.cmd[i].pos = dof_pos[i]
         
@@ -113,29 +114,22 @@ class Wr3DeployEnv(BaseDeployEnv):
     def _reset_robot(self):
         self._set_motor_pd(kp=20., kd=0.2)
         while True:
-            state_dict = self._acquire_robot_state()
-            self.update_state(state_dict)
-
-            actions = torch.zeros((self.num_envs, self.num_actions), dtype=torch.float32, device=self.device)
-            self._apply_action_to_robot(actions, state_dict, torque_threshold=0.5)
+            action = torch.zeros((self.num_envs, self.num_actions), dtype=torch.float32, device=self.device)
+            self.update_action(action)
+            self._apply_action_to_robot(action, torque_threshold=0.5)
             time.sleep(0.01)
+            state_dict = self.get_state()
             if np.all(np.abs(state_dict["dof_pos"] - self.default_dof_pos) < 1e-1):
-                self._set_motor_pd(kp=self.Kp, kd=self.Kd, send_data=False)
+                self._set_motor_pd(kp=self.default_Kp, kd=self.default_Kd, send_data=False)
                 # raise EOFError
                 break
 
-    def _control_thread(self):
-        self._reset_robot()
-        self.has_started.set()
-
-        rate = RateLimiter(frequency=120, warn=True)
+    def _update_state_thread(self):
+        rate = RateLimiter(frequency=1000, warn=True)
         while True:
             start = time.time()
             state_dict = self._acquire_robot_state()
             self.update_state(state_dict)
-
-            actions = self.get_action()
-            self._apply_action_to_robot(actions, state_dict)
 
             rate.sleep()
             end = time.time()
@@ -180,10 +174,10 @@ class Wr3DeployEnv(BaseDeployEnv):
             dof_pos=dof_pos.copy(),
             dof_vel=dof_vel.copy()
         )
-
         return state_dict
 
-    def _apply_action_to_robot(self, actions, state_dict, torque_threshold=None):
+    def _apply_action_to_robot(self, actions, torque_threshold=None):
+        state_dict = self.get_state()
         dof_vel = state_dict['dof_vel']
         dof_pos = state_dict['dof_pos']
         actions = actions.squeeze(0).cpu().numpy()
@@ -192,7 +186,7 @@ class Wr3DeployEnv(BaseDeployEnv):
         torque = self.Kp*(self.action_scale * actions + self.default_dof_pos - dof_pos) - self.Kd * dof_vel
         max_torque = torque_threshold if torque_threshold is not None else self.max_torque
         clipped_torque = np.clip(torque, -max_torque, max_torque)
-        clipped_target_dof_pos = (clipped_torque + self.Kd * dof_vel) / self.Kp
+        clipped_target_dof_pos = (clipped_torque + self.Kd * dof_vel) / self.Kp + dof_pos
 
         # # TODO: add protection for out of bound
         # if clip_action:
@@ -210,12 +204,14 @@ class Wr3DeployEnv(BaseDeployEnv):
 
     def get_obs(self):
         state_dict = self.get_state()
+        action = self.get_action()
         base_quat = torch.from_numpy(state_dict['base_quat']).to(self.device)
 
         # TODO: quat rotate inverse may be not correct
         base_lin_vel = torch.from_numpy(state_dict['base_lin_vel']).to(self.device)
         base_lin_vel = quat_rotate_inverse(base_quat.unsqueeze(0), base_lin_vel.unsqueeze(0))
 
+        # TODO: confirm the ang vel is local or global
         base_ang_vel = torch.from_numpy(state_dict['base_ang_vel']).to(self.device)
         base_ang_vel = quat_rotate_inverse(base_quat.unsqueeze(0), base_ang_vel.unsqueeze(0))
 
@@ -230,7 +226,6 @@ class Wr3DeployEnv(BaseDeployEnv):
 
         heights = torch.from_numpy(state_dict['heights']).to(self.device)
 
-        action = self.get_action()
 
         if self.use_default_commands:
             self.commands *= 0
@@ -249,7 +244,9 @@ class Wr3DeployEnv(BaseDeployEnv):
 
         assert obs_tensor.shape == (self.num_envs, self.num_obs)
         return obs_tensor
-
+    def step(self, action):
+        self._apply_action_to_robot(action)
+        return super().step(action)
 
 @torch.jit.script
 def wrap_to_pi(angles):

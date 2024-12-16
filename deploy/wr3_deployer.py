@@ -34,12 +34,15 @@ class Wr3Deployer(PpoPlayerContinuous):
         self.wait_for_checkpoint()
 
         need_init_rnn = self.is_rnn
-
+        from deploy.wr3_deploy_env import Wr3DeployEnv
+        from deploy.wr3_sim2sim_env import Wr3MujocoEnv
+        # self.env: Wr3DeployEnv
 
         for _ in range(n_games):
             if games_played >= n_games:
                 break
-            self.env.start_control_thread()
+            if isinstance(self.env,Wr3MujocoEnv):
+                self.env.start_control_thread()
             obses = self.env_reset(self.env)
 
             if need_init_rnn:
