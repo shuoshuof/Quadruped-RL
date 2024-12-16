@@ -205,7 +205,7 @@ class Wr3DeployEnv(BaseDeployEnv):
     def get_obs(self, is_policy_input=False):
         state_dict = self.get_state()
         if is_policy_input:
-            self.update_policy_input(state_dict)
+            self.update_policy_input(copy.deepcopy(state_dict))
         action = self.get_action()
         base_quat = torch.from_numpy(state_dict['base_quat']).to(self.device)
 

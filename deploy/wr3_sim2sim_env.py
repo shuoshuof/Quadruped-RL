@@ -153,7 +153,7 @@ class Wr3MujocoEnv(BaseDeployEnv):
 
         return state_dict
 
-    def get_obs(self):
+    def get_obs(self,is_policy_input=False):
         state_dict = self.get_state()
         base_quat = torch.from_numpy(state_dict['base_quat']).to(self.device)
 
