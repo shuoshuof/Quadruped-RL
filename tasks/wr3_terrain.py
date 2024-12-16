@@ -32,8 +32,11 @@ class Wr3Terrain(VecTask):
         self.debug_viz = self.cfg["env"]["enableDebugVis"]
         self.init_done = False
 
+        # domain randomization
         self.randomize = self.cfg["task"]["randomize"]
         self.randomization_params = self.cfg["task"]["randomization_params"]
+        self.randomize_delay = self.cfg["task"]["randomization_params"]["delay"]["randomize"]
+        self.max_delay_step = self.cfg["task"]["randomization_params"]["delay"]["max_delay_step"]
 
         # normalization
         self.lin_vel_scale = self.cfg["env"]["learn"]["linearVelocityScale"]
@@ -138,7 +141,7 @@ class Wr3Terrain(VecTask):
                                    requires_grad=False)
         self.actions = torch.zeros(self.num_envs, self.num_actions, dtype=torch.float, device=self.device,
                                    requires_grad=False)
-        self.actions_hist = torch.zeros(self.num_envs, 5 , self.num_actions, dtype=torch.float, device=self.device)
+        self.actions_hist = torch.zeros(self.num_envs, self.max_delay_step , self.num_actions, dtype=torch.float, device=self.device)
         self.last_actions = torch.zeros(self.num_envs, self.num_actions, dtype=torch.float, device=self.device,
                                         requires_grad=False)
         self.feet_air_time = torch.zeros(self.num_envs, 4, dtype=torch.float, device=self.device, requires_grad=False)
@@ -175,7 +178,6 @@ class Wr3Terrain(VecTask):
             command_size=3,
             world_model_size=3
         )
-
 
     def create_sim(self):
         self.up_axis_idx = 2  # index of up axis: Y=1, Z=2
@@ -570,10 +572,12 @@ class Wr3Terrain(VecTask):
 
     def pre_physics_step(self, actions):
         # TODO: actions should be clipped?
-        self.actions_hist = torch.concatenate([self.actions_hist[:, 1:], actions.clone().unsqueeze(1)], dim=1)
-        delay_indices = torch.randint(0, 5, (self.num_envs,), device=self.device)
-        self.actions = self.actions_hist[torch.arange(self.num_envs), delay_indices]
-        # self.actions = actions.clone().to(self.device)
+        if self.randomize_delay:
+            self.actions_hist = torch.concatenate([self.actions_hist[:, 1:], actions.clone().unsqueeze(1)], dim=1)
+            delay_indices = torch.randint(0,self.max_delay_step , (self.num_envs,), device=self.device)
+            self.actions = self.actions_hist[torch.arange(self.num_envs), delay_indices]
+        else:
+            self.actions = actions.clone().to(self.device)
         for i in range(self.decimation):
             torques = torch.clip(self.Kp * (
                         self.action_scale * self.actions + self.default_dof_pos - self.dof_pos) - self.Kd * self.dof_vel,
