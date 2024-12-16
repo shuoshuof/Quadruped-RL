@@ -141,7 +141,7 @@ class Wr3Terrain(VecTask):
                                    requires_grad=False)
         self.actions = torch.zeros(self.num_envs, self.num_actions, dtype=torch.float, device=self.device,
                                    requires_grad=False)
-        self.actions_hist = torch.zeros(self.num_envs, self.max_delay_step , self.num_actions, dtype=torch.float, device=self.device)
+        self.actions_hist = torch.zeros(self.num_envs, self.max_delay_step+1 , self.num_actions, dtype=torch.float, device=self.device)
         self.last_actions = torch.zeros(self.num_envs, self.num_actions, dtype=torch.float, device=self.device,
                                         requires_grad=False)
         self.feet_air_time = torch.zeros(self.num_envs, 4, dtype=torch.float, device=self.device, requires_grad=False)
@@ -574,7 +574,7 @@ class Wr3Terrain(VecTask):
         # TODO: actions should be clipped?
         if self.randomize_delay:
             self.actions_hist = torch.concatenate([self.actions_hist[:, 1:], actions.clone().unsqueeze(1)], dim=1)
-            delay_indices = torch.randint(0,self.max_delay_step , (self.num_envs,), device=self.device)
+            delay_indices = torch.randint(0,self.max_delay_step+1 , (self.num_envs,), device=self.device)
             self.actions = self.actions_hist[torch.arange(self.num_envs), delay_indices]
         else:
             self.actions = actions.clone().to(self.device)
