@@ -82,22 +82,21 @@ class Wr3DeployEnv(BaseDeployEnv):
         ]
 
         # TODO: motor order may be different with the sim
-        for _ in range(100):
+        for _ in range(10):
             imu_data = self.receiver.get_imu_data()
             self.start_quat = np.array(imu_data.quaternion, dtype=np.float32)[[1, 2, 3, 0]]
             self.start_quat = normalize(to_torch(self.start_quat, device=self.device))
-            state_dict = self._acquire_robot_state()
+            self._acquire_robot_state()
             time.sleep(0.01)
-        dof_pos = state_dict['dof_pos'][self.sim2real_dof_map]
+        
+        for _ in range(10):
+            self._set_motor_pd(kp=self.Kp, kd=self.Kd, send_data=True)
+            time.sleep(0.01)
 
-        self._set_motor_pd(kp=self.Kp, kd=self.Kd)
-        for i in range(self.num_dofs):
-            self.motor_cmd.cmd[i].pos = dof_pos[i]
-
-        self.motor_cmd.send_data()
+        state_dict = self._acquire_robot_state()
         print("_init_SDK:", state_dict)
 
-    def _set_motor_pd(self, kp=0., kd=0., send_data=True):
+    def _set_motor_pd(self, kp=0., kd=0., send_data=False):
         self.Kp = kp
         self.Kd = kd
         state_dict = self._acquire_robot_state()
@@ -112,7 +111,7 @@ class Wr3DeployEnv(BaseDeployEnv):
             self.motor_cmd.send_data()
 
     def _reset_robot(self):
-        self._set_motor_pd(kp=20., kd=0.2)
+        self._set_motor_pd(kp=20., kd=0.2, send_data=True)
         while True:
             action = torch.zeros((self.num_envs, self.num_actions), dtype=torch.float32, device=self.device)
             self.update_action(action)
@@ -176,10 +175,11 @@ class Wr3DeployEnv(BaseDeployEnv):
         )
         return state_dict
 
-    def _apply_action_to_robot(self, actions, torque_threshold=None):
-        state_dict = self.get_state()
-        dof_vel = state_dict['dof_vel']
-        dof_pos = state_dict['dof_pos']
+    def _apply_action_to_robot(self, actions, dof_pos, dof_vel, torque_threshold=None):
+        # TODO: dof_pos, dof_vel
+        # state_dict = self.get_state()
+        # dof_vel = state_dict['dof_vel']
+        # dof_pos = state_dict['dof_pos']
         actions = actions.squeeze(0).cpu().numpy()
         # target_dof_pos = self.action_scale * actions + self.default_dof_pos
 
