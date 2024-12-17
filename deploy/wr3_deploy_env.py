@@ -115,7 +115,7 @@ class Wr3DeployEnv(BaseDeployEnv):
         while True:
             action = torch.zeros((self.num_envs, self.num_actions), dtype=torch.float32, device=self.device)
             self.update_action(action)
-            self._apply_action_to_robot(action, torque_threshold=0.5)
+            self._apply_action_to_robot(action, torque_threshold=0.7)
             time.sleep(0.01)
             state_dict = self.get_state()
             if np.all(np.abs(state_dict["dof_pos"] - self.default_dof_pos) < 1e-1):
@@ -178,9 +178,11 @@ class Wr3DeployEnv(BaseDeployEnv):
     def _apply_action_to_robot(self, actions, use_policy_input=False,torque_threshold=None):
         # ensure the same state used for policy input and action calculation
         if use_policy_input:
+            action_threshold = 0.05
             state_dict = self.policy_input
         else:
             state_dict = self.get_state()
+            action_threshold = 0.01
         dof_vel = state_dict['dof_vel']
         dof_pos = state_dict['dof_pos']
 
@@ -191,6 +193,7 @@ class Wr3DeployEnv(BaseDeployEnv):
         max_torque = torque_threshold if torque_threshold is not None else self.max_torque
         clipped_torque = np.clip(torque, -max_torque, max_torque)
         clipped_target_dof_pos = (clipped_torque + self.Kd * dof_vel) / self.Kp + dof_pos
+        clipped_target_dof_pos = np.clip(clipped_target_dof_pos, dof_pos - action_threshold, dof_pos + action_threshold)
 
         # # TODO: add protection for out of bound
         # if clip_action:
@@ -235,7 +238,7 @@ class Wr3DeployEnv(BaseDeployEnv):
 
         if self.use_default_commands:
             self.commands *= 0
-            self.commands[:, 0] = 0
+            self.commands[:, 0] = 0.5
 
         obs_tensor = torch.concatenate([
             # base_lin_vel * self.lin_vel_scale,
