@@ -484,7 +484,7 @@ class Wr3Terrain(VecTask):
         rew_height = self.cal_heights_reward()
 
         rew_exceed_dof_limit = torch.sum(
-            torch.square(self.dof_pos - torch.clip(self.dof_pos, self.dof_limits[:, :, 0], self.dof_limits[:, :, 1])),
+            torch.abs(self.dof_pos - torch.clip(self.dof_pos, self.dof_limits[:, :, 0], self.dof_limits[:, :, 1])),
             dim=1) * self.rew_scales["exceed_dof_limit"]
 
         # total reward
