@@ -203,7 +203,7 @@ env:
     defaultDofDriveMode: 4 # see GymDofDriveModeFlags (0 is none, 1 is pos tgt, 2 is vel tgt, 4 effort)
 
   learn:
-    expectedHeight: 0.35
+    expectedHeight: 0.3
 
     allowKneeContacts: true
     # rewards
@@ -220,6 +220,7 @@ env:
     kneeCollisionRewardScale: -0.25
     feetStumbleRewardScale: -0. #-2.0
     actionRateRewardScale: -0.01
+    secOrdActionRewardScale: -0.005
     # cosmetics
     hipRewardScale: -0. #25
 
