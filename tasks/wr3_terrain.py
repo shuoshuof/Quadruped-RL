@@ -63,6 +63,7 @@ class Wr3Terrain(VecTask):
         self.rew_scales["action_rate"] = self.cfg["env"]["learn"]["actionRateRewardScale"]
         # self.rew_scales["hip"] = self.cfg["env"]["learn"]["hipRewardScale"]
         self.rew_scales["pose"] = self.cfg["env"]["learn"]["poseRewardScale"]
+        self.rew_scales["exceed_dof_limit"] = self.cfg["env"]["learn"]["exceedDofLimitRewardScale"]
 
         self.expected_height = self.cfg["env"]["learn"]["expectedHeight"]
 
@@ -150,25 +151,25 @@ class Wr3Terrain(VecTask):
         self.height_points = self.init_height_points()
         self.measured_heights = None
 
-
-        # joint positions offsets
         self.default_dof_pos = torch.zeros_like(self.dof_pos, dtype=torch.float, device=self.device,
                                                 requires_grad=False)
-        # default joint positions
-        self.named_default_joint_angles = self.cfg["env"]["defaultJointAngles"]
+        self.dof_limits = torch.zeros(self.num_envs, self.num_dof, 2, dtype=torch.float, device=self.device,
+                                                requires_grad=False)
+        self.dof_limits_dict = self.cfg["env"]["dofLimits"]
+        self.default_joint_angles_dict = self.cfg["env"]["defaultJointAngles"]
 
         for i in range(self.num_actions):
             name = self.dof_names[i]
-            angle = self.named_default_joint_angles[name]
+            angle = self.default_joint_angles_dict[name]
             self.default_dof_pos[:, i] = angle
-
+            self.dof_limits[:,i,0] = self.cfg["env"]["dofLimits"][name][0]
+            self.dof_limits[:,i,1] = self.cfg["env"]["dofLimits"][name][1]
         # reward episode sums
         torch_zeros = lambda: torch.zeros(self.num_envs, dtype=torch.float, device=self.device, requires_grad=False)
         self.episode_sums = { rew_name: torch_zeros() for rew_name in self.rew_scales.keys() }
 
         self.reset_idx(torch.arange(self.num_envs, device=self.device))
         self.init_done = True
-
     def get_state_dim_dict(self):
 
          return OrderedDict(
@@ -482,10 +483,14 @@ class Wr3Terrain(VecTask):
 
         rew_height = self.cal_heights_reward()
 
+        rew_exceed_dof_limit = torch.sum(
+            torch.abs(self.dof_pos - torch.clip(self.dof_pos, self.dof_limits[:, :, 0], self.dof_limits[:, :, 1])),
+            dim=1) * self.rew_scales["exceed_dof_limit"]
+
         # total reward
         self.rew_buf = rew_lin_vel_xy + rew_lin_vel_z + rew_ang_vel_xy + rew_ang_vel_z + rew_orient  + \
                        rew_torque + rew_joint_acc + rew_collision + rew_action_rate + rew_air_time  + rew_stumble + \
-                       rew_pose + rew_height
+                       rew_pose + rew_height + rew_exceed_dof_limit
         self.rew_buf = torch.clip(self.rew_buf, min=0., max=None)
 
         # add termination reward

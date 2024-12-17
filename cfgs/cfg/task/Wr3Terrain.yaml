@@ -172,21 +172,23 @@ env:
     RR_hip_joint: 0.362
     RR_thigh_joint: 1.11
     RR_calf_joint: -2.71
+
+  # expected joint limits
   dofLimits:
     FL_hip_joint: [-0.69813, 0.69813]
-    FL_thigh_joint: [-0.66323, 2.79253]
+    FL_thigh_joint: [-0.66323, 0.79253]
     FL_calf_joint: [-2.7053, -0.89012]
 
     FR_hip_joint: [-0.69813, 0.69813]
-    FR_thigh_joint: [-0.66323, 2.79253]
+    FR_thigh_joint: [-0.66323, 0.79253]
     FR_calf_joint: [-2.7053, -0.89012]
 
     RL_hip_joint: [-0.69813, 0.69813]
-    RL_thigh_joint: [-0.66323, 2.79253]
+    RL_thigh_joint: [-0.66323, 0.79253]
     RL_calf_joint: [-2.7053, -0.89012]
 
     RR_hip_joint: [-0.69813, 0.69813]
-    RR_thigh_joint: [-0.66323, 2.79253]
+    RR_thigh_joint: [-0.66323, 0.79253]
     RR_calf_joint: [-2.7053, -0.89012]
 
 
@@ -218,12 +220,12 @@ env:
     kneeCollisionRewardScale: -0.25
     feetStumbleRewardScale: -0. #-2.0
     actionRateRewardScale: -0.01
-
     # cosmetics
     hipRewardScale: -0. #25
 
     # pose constraints
     poseRewardScale: -0.2
+    exceedDofLimitRewardScale: -0.1
 
     # TODO: may be need to be turned
     # normalization
@@ -307,15 +309,7 @@ task:
        schedule_steps: 1000
     actor_params:
       wr3:
-        color: True
-#         rigid_body_properties:
-#           mass:
-#             range: [0.75, 1.50]
-#             operation: "scaling"
-#             distribution: "uniform"
-#             setup_only: True # Property will only be randomized once before simulation is started. See Domain Randomization Documentation for more info.
-#             schedule: "linear"  # "linear" will linearly interpolate between no rand and max rand
-#             schedule_steps: 1000
+        color: False
         rigid_shape_properties:
           friction:
             num_buckets: 500
