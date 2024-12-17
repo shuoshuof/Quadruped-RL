@@ -40,6 +40,7 @@ env:
     mapWidth: 8.
     numLevels: 10
     numTerrains: 20
+    difficultyStep: 0.05
     # terrain types: [smooth slope, rough slope, stairs up, stairs down, discrete]
     # tri mesh only:
     slopeTreshold: 0.5

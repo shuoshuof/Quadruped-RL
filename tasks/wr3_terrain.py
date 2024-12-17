@@ -178,7 +178,7 @@ class Wr3Terrain(VecTask):
             actor_rnn_input_size = 42,
             critic_input_size = 45,
             command_size=3,
-            world_model_size=3
+            world_model_size=45
         )
 
     def create_sim(self):
@@ -397,7 +397,7 @@ class Wr3Terrain(VecTask):
                 actor_obs,
                 critic_obs,
                 command,
-                base_vel
+                critic_obs,
             ],dim=-1)
             assert obs_buf.shape == (self.num_envs, self.num_obs)
             self.obs_buf = obs_buf
@@ -493,7 +493,7 @@ class Wr3Terrain(VecTask):
         # total reward
         self.rew_buf = rew_lin_vel_xy + rew_lin_vel_z + rew_ang_vel_xy + rew_ang_vel_z + rew_orient  + \
                        rew_torque + rew_joint_acc + rew_collision + rew_action_rate + rew_air_time  + rew_stumble + \
-                       rew_pose + rew_height + rew_exceed_dof_limit
+                       rew_pose + rew_height + rew_exceed_dof_limit + rew_sec_ord_action_rate
         self.rew_buf = torch.clip(self.rew_buf, min=0., max=None)
 
         # add termination reward

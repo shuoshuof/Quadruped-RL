@@ -153,6 +153,7 @@ class TerrainGenerator:
         self.border_size = cfg["borderSize"]
         self.env_length = cfg["mapLength"]
         self.env_width = cfg["mapWidth"]
+        self.difficulty_step = cfg["difficultyStep"]
 
         self.env_rows = cfg["numLevels"]
         self.env_cols = cfg["numTerrains"]
@@ -195,7 +196,7 @@ class TerrainGenerator:
 
                 terrain_params = self.cfg[terrain_type].copy()
                 difficulty_param = terrain_height_keys_map[terrain_type]
-                terrain_params[difficulty_param] = terrain_params[difficulty_param] + difficulty * 0.15
+                terrain_params[difficulty_param] = terrain_params[difficulty_param] + difficulty * self.difficulty_step
 
                 terrain_functions_dict[terrain_type](terrain,**terrain_params)
 
