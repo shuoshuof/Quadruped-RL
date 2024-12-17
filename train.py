@@ -1,4 +1,5 @@
 import hydra
+import wandb
 from omegaconf import DictConfig, OmegaConf
 
 
@@ -164,6 +165,7 @@ def launch_rlg_hydra(cfg: DictConfig):
     if cfg.wandb_activate:
         cfg.seed += global_rank
         if global_rank == 0:
+            wandb.login(key='6b49e6d19223293d2225503e84a309342c066092')
             # initialize wandb only once per multi-gpu run
             wandb_observer = WandbAlgoObserver(cfg)
             observers.append(wandb_observer)
