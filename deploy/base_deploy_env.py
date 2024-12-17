@@ -6,14 +6,18 @@
 @Project ：Quadruped-RL
 """
 from abc import ABC, abstractmethod
+from collections import deque
 import threading
 import copy
-
+import time
 import numpy as np
+import matplotlib.pyplot as plt
 
 import gym
 from gym import spaces
 import torch
+
+from vedo import *
 
 class BaseDeployEnv(ABC):
     def __init__(self,cfg,device="cuda:0",run_command_thread=False):
@@ -29,7 +33,14 @@ class BaseDeployEnv(ABC):
         self._allocate_buffers()
         self._init_thread_flags()
 
+        self.action_hist = deque([np.zeros((12,))]*100,maxlen=100)
+
         self.commands = torch.zeros((self.num_envs, 4), dtype=torch.float32, device=self.device)
+
+        visualize_thread = threading.Thread(target=self._run_visualize_thread)
+        visualize_thread.setDaemon(True)
+        visualize_thread.start()
+
         if run_command_thread:
             command_thread = threading.Thread(target=self._run_command_thread)
             command_thread.setDaemon(True)
@@ -74,6 +85,61 @@ class BaseDeployEnv(ABC):
 
         with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
             listener.join()
+    def _run_visualize_thread(self):
+
+
+        # 假设有一些数据
+        actions = self.action_hist.copy()
+        actions = np.array(actions)
+
+        t = np.arange(len(actions)) * 1/60
+
+        actions_error = actions[1:] - actions[:-1]
+        t_error = np.arange(len(actions_error)) * 1/60
+
+        # 创建绘图
+        fig, axes = plt.subplots(3, 4+4,figsize=(15,40))  # 3行4列的子图
+        lines = {}
+
+        # 初始化每条线条并添加到子图
+        for subplot_idx in range(self.num_actions):
+            ax = axes[subplot_idx%3][subplot_idx//3]  # 获取子图
+            line, = ax.plot(t, actions[:, subplot_idx])  # 创建线条
+            lines[f'line_{subplot_idx}'] = line
+            ax.set_title(f'Action {subplot_idx}')
+            ax.set_ylim(-1, 1)  # 设置y轴范围为[-1, 1]
+
+        for subplot_idx in range(self.num_actions):
+            ax = axes[subplot_idx % 3][subplot_idx // 3 + 4]  # 获取子图
+            line, = ax.plot(t_error, actions_error[:, subplot_idx])  # 创建线条
+            lines[f'line_{subplot_idx}_error'] = line
+            ax.set_title(f'Action Error {subplot_idx}')
+            ax.set_ylim(-1, 1)
+
+        # 显示图形
+        plt.tight_layout()  # 调整子图间距
+        plt.draw()
+
+        # 使用普通循环更新图形
+        while True:
+            actions = self.action_hist.copy()  # 复制数据
+            actions = np.array(actions)
+            t = np.arange(len(actions)) * 1/60  # 更新时间轴
+
+            actions_error = actions[1:] - actions[:-1]
+            t_error = np.arange(len(actions_error)) * 1 / 60
+
+            for subplot_idx in range(self.num_actions):
+                lines[f'line_{subplot_idx}'].set_ydata(actions[:, subplot_idx])  # 更新y数据
+
+            for subplot_idx in range(self.num_actions):
+                lines[f'line_{subplot_idx}_error'].set_ydata(actions_error[:, subplot_idx])
+
+            plt.draw()  # 手动重绘图形
+            plt.pause(0.001)  # 暂停一定时间，模拟更新的频率
+
+        plt.show()  # 显示最终图形
+
     @abstractmethod
     def get_obs(self,*args,**kwargs):
         raise NotImplementedError

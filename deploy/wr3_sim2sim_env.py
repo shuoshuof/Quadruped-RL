@@ -43,7 +43,7 @@ class Wr3MujocoEnv(BaseDeployEnv):
         self.use_default_commands = self.cfg["env"]["useDefaultCommands"]
 
         if self.use_default_commands:
-            self.commands[:, 0] = 0.
+            self.commands[:, 0] = 1.
         # control
         self.default_dof_pos = np.zeros(self.num_dofs, dtype=np.float32)
         self.Kp = self.cfg["env"]["control"]["stiffness"]
@@ -62,8 +62,6 @@ class Wr3MujocoEnv(BaseDeployEnv):
 
         self._init_sim()
         self._launch_viewer()
-
-    def start_control_thread(self):
         sim_thread = threading.Thread(target=self._run_sim_thread)
         sim_thread.setDaemon(True)
         sim_thread.start()
@@ -200,6 +198,7 @@ class Wr3MujocoEnv(BaseDeployEnv):
         assert torques_clipped.shape == (12,)
         self.mj_data.ctrl[:12] = torques_clipped
 
+        self.action_hist.append(actions)
     
     def _apply_state_in_mujoco(self, state_dict):
         robot_base_state = {"pos": state_dict["base_pos"], "rot": state_dict["base_quat"], "vLinear": state_dict["base_lin_vel"], "vAngular": state_dict["base_ang_vel"]}
