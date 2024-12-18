@@ -466,7 +466,7 @@ class Wr3Terrain(VecTask):
             "action_rate"]
         rew_sec_ord_action_rate = torch.sum(torch.abs(self.actions- 2*self.last_actions + self.actions_hist[:,-2]), dim=1) \
                                   * self.rew_scales["sec_ord_action_rate"]
-        rew_high_action_rate = torch.sum(torch.abs(self.actions-self.last_actions)>0.25, dim=1) * self.rew_scales[
+        rew_high_action_rate = torch.sum(torch.abs(self.actions-self.last_actions)>0.1, dim=1) * self.rew_scales[
             "high_action_rate"]
 
         # air time reward
@@ -496,7 +496,7 @@ class Wr3Terrain(VecTask):
         # total reward
         self.rew_buf = rew_lin_vel_xy + rew_lin_vel_z + rew_ang_vel_xy + rew_ang_vel_z + rew_orient  + \
                        rew_torque + rew_joint_acc + rew_collision + rew_action_rate + rew_air_time  + rew_stumble + \
-                       rew_pose + rew_height + rew_exceed_dof_limit + rew_sec_ord_action_rate
+                       rew_pose + rew_height + rew_exceed_dof_limit + rew_sec_ord_action_rate + rew_high_action_rate
         self.rew_buf = torch.clip(self.rew_buf, min=0., max=None)
 
         # add termination reward
