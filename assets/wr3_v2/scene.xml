@@ -4,7 +4,11 @@
   <!-- <include file="wr3_v2.urdf" /> -->
 
 
-  <option timestep="0.005"/>
+  <option timestep='0.005' iterations='50' solver='PGS' gravity='0 0 -9.81'>
+    <flag  frictionloss="enable"/>
+  </option>
+
+  <size njmax="500" nconmax="100" />
   <statistic center="1 0.7 1.5" extent="0.8" />
   <visual>
     <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0" />
@@ -17,10 +21,20 @@
       rgb2="0.1 0.2 0.3" markrgb="0.8 0.8 0.8" width="300" height="300" />
     <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5"
       reflectance="0.2" />
+    <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="512"/>
+    <texture name="texplane" type="2d" builtin="checker" rgb1=".2 .3 .4" rgb2=".1 0.15 0.2"
+        width="512" height="512" mark="cross" markrgb=".8 .8 .8"/>
+    <texture name="texplane2" type="2d" builtin="checker" rgb1="1 0.3137 0.1843" rgb2="0.0 0.30196 0.38039"
+        width="512" height="512" mark="cross" markrgb=".8 .8 .8"/>
+    <material name="matplane" reflectance="0." texture="texplane" texrepeat="1 1" texuniform="true"/>
+    <material name="matplane2" reflectance="0.1" texture="texplane2" texrepeat="1 1" texuniform="true"/>
+    <hfield name='hf0' nrow='200' ncol='200' size="10 5 0.2 .1"/>
+    <hfield file="../terrain/uneven.png" name="hf1" ncol="0" nrow="0" size="50 50 0.35 0.1" />
   </asset>
   <worldbody>
-    <light pos="0 0 1.5" dir="0 0 -1" directional="true" />
+    <light directional="true" diffuse=".4 .4 .4" specular="0.1 0.1 0.1" pos="0 0 5.0" dir="0 0 -1" castshadow="false"/>
+    <light directional="true" diffuse=".6 .6 .6" specular="0.2 0.2 0.2" pos="0 0 4" dir="0 0 -1"/>
+<!--    <geom name="ground" type="hfield" hfield="hf1" size="0 0 1" pos="0.001 0 0" quat="1 0 0 0" material="matplane" condim="1" conaffinity='15'/>-->
     <geom name="floor" size="0 0 0.05" type="plane" material="groundplane" />
-
   </worldbody>
 </mujoco>
