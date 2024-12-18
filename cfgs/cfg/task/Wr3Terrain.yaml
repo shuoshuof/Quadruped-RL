@@ -95,7 +95,7 @@ env:
 
 
   baseInitState:
-    pos: [0.0, 0.0, 0.40] # x,y,z [m]
+    pos: [0.0, 0.0, 0.33] # x,y,z [m]
     rot: [0.0, 0.0, 0.0, 1.0] # x,y,z,w [quat]
     vLinear: [0.0, 0.0, 0.0]  # x,y,z [m/s]
     vAngular: [0.0, 0.0, 0.0]  # x,y,z [rad/s]
@@ -222,6 +222,7 @@ env:
     feetStumbleRewardScale: -0. #-2.0
     actionRateRewardScale: -0.01
     secOrdActionRewardScale: -0.005
+    highActionRateRewardScale: -0.1
     # cosmetics
     hipRewardScale: -0. #25
 

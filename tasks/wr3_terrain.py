@@ -62,6 +62,7 @@ class Wr3Terrain(VecTask):
         self.rew_scales["stumble"] = self.cfg["env"]["learn"]["feetStumbleRewardScale"]
         self.rew_scales["action_rate"] = self.cfg["env"]["learn"]["actionRateRewardScale"]
         self.rew_scales["sec_ord_action_rate"] = self.cfg["env"]["learn"]["secOrdActionRewardScale"]
+        self.rew_scales["high_action_rate"] = self.cfg["env"]["learn"]["highActionRateRewardScale"]
         # self.rew_scales["hip"] = self.cfg["env"]["learn"]["hipRewardScale"]
         self.rew_scales["pose"] = self.cfg["env"]["learn"]["poseRewardScale"]
         self.rew_scales["exceed_dof_limit"] = self.cfg["env"]["learn"]["exceedDofLimitRewardScale"]
@@ -461,10 +462,12 @@ class Wr3Terrain(VecTask):
         rew_stumble = torch.sum(stumble, dim=1) * self.rew_scales["stumble"]
 
         # action rate penalty
-        rew_action_rate = torch.sum(torch.abs(self.actions - self.last_actions), dim=1) * self.rew_scales[
+        rew_action_rate = torch.sum(torch.square(self.actions - self.last_actions), dim=1) * self.rew_scales[
             "action_rate"]
         rew_sec_ord_action_rate = torch.sum(torch.abs(self.actions- 2*self.last_actions + self.actions_hist[:,-2]), dim=1) \
                                   * self.rew_scales["sec_ord_action_rate"]
+        rew_high_action_rate = torch.sum(torch.abs(self.actions-self.last_actions)>0.25, dim=1) * self.rew_scales[
+            "high_action_rate"]
 
         # air time reward
         # contact = torch.norm(contact_forces[:, feet_indices, :], dim=2) > 1.
@@ -510,7 +513,7 @@ class Wr3Terrain(VecTask):
             self.apply_randomizations(self.randomization_params)
 
         # TODO: reset need to be clipped?
-        positions_offset = torch_rand_float(0.5, 1.5, (len(env_ids), self.num_dof), device=self.device)
+        positions_offset = torch_rand_float(0.95, 1.05, (len(env_ids), self.num_dof), device=self.device)
         velocities = torch_rand_float(-0.1, 0.1, (len(env_ids), self.num_dof), device=self.device)
 
         self.dof_pos[env_ids] = self.default_dof_pos[env_ids] * positions_offset
