@@ -68,6 +68,7 @@ class Wr3Terrain(VecTask):
         self.rew_scales["exceed_dof_limit"] = self.cfg["env"]["learn"]["exceedDofLimitRewardScale"]
 
         self.expected_height = self.cfg["env"]["learn"]["expectedHeight"]
+        self.high_action_threshold = self.cfg["env"]["learn"]["highActionThreshold"]
 
         # command ranges
         self.command_x_range = self.cfg["env"]["randomCommandVelocityRanges"]["linear_x"]
@@ -466,7 +467,7 @@ class Wr3Terrain(VecTask):
             "action_rate"]
         rew_sec_ord_action_rate = torch.sum(torch.abs(self.actions- 2*self.last_actions + self.actions_hist[:,-2]), dim=1) \
                                   * self.rew_scales["sec_ord_action_rate"]
-        rew_high_action_rate = torch.sum(torch.abs(self.actions-self.last_actions)>0.1, dim=1) * self.rew_scales[
+        rew_high_action_rate = torch.sum(torch.abs(self.actions-self.last_actions) > self.high_action_threshold, dim=1) * self.rew_scales[
             "high_action_rate"]
 
         # air time reward

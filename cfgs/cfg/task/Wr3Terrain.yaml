@@ -220,8 +220,10 @@ env:
     feetAirTimeRewardScale:  1.0
     kneeCollisionRewardScale: -0.25
     feetStumbleRewardScale: -0. #-2.0
+    # action regulation
     actionRateRewardScale: -0.01
     secOrdActionRewardScale: -0.005
+    highActionThreshold: 0.05
     highActionRateRewardScale: -0.1
     # cosmetics
     hipRewardScale: -0. #25
