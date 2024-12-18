@@ -20,7 +20,7 @@ import torch
 from vedo import *
 
 class BaseDeployEnv(ABC):
-    def __init__(self,cfg,device="cuda:0",run_command_thread=False):
+    def __init__(self,cfg,device="cuda:0",run_command_thread=False, run_visualize_thread=False):
         self.cfg = cfg
         self.device = device
         self.num_envs = self.cfg["env"]['numEnvs']
@@ -37,9 +37,10 @@ class BaseDeployEnv(ABC):
 
         self.commands = torch.zeros((self.num_envs, 4), dtype=torch.float32, device=self.device)
 
-        visualize_thread = threading.Thread(target=self._run_visualize_thread)
-        visualize_thread.setDaemon(True)
-        visualize_thread.start()
+        if run_visualize_thread:
+            visualize_thread = threading.Thread(target=self._run_visualize_thread)
+            visualize_thread.setDaemon(True)
+            visualize_thread.start()
 
         if run_command_thread:
             command_thread = threading.Thread(target=self._run_command_thread)

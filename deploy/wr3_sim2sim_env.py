@@ -27,7 +27,7 @@ class Wr3MujocoEnv(BaseDeployEnv):
 
         self.device = 'cuda:0'
 
-        super().__init__(cfg)
+        super().__init__(cfg,run_visualize_thread=True)
 
         self.num_dofs = self.num_actions
 
@@ -43,7 +43,7 @@ class Wr3MujocoEnv(BaseDeployEnv):
         self.use_default_commands = self.cfg["env"]["useDefaultCommands"]
 
         if self.use_default_commands:
-            self.commands[:, 0] = 1.
+            self.commands[:, 0] = 0.5
         # control
         self.default_dof_pos = np.zeros(self.num_dofs, dtype=np.float32)
         self.Kp = self.cfg["env"]["control"]["stiffness"]
