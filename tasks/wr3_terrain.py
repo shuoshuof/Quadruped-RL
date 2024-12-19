@@ -467,7 +467,7 @@ class Wr3Terrain(VecTask):
             "action_rate"]
         rew_sec_ord_action_rate = torch.sum(torch.abs(self.actions- 2*self.last_actions + self.actions_hist[:,-2]), dim=1) \
                                   * self.rew_scales["sec_ord_action_rate"]
-        rew_high_action_rate = torch.sum(torch.abs(self.actions-self.last_actions) > self.high_action_threshold, dim=1) * self.rew_scales[
+        rew_high_action_rate = torch.sum((torch.abs(self.actions-self.last_actions) - self.high_action_threshold).clip(min=0.), dim=1) * self.rew_scales[
             "high_action_rate"]
 
         # air time reward
@@ -566,6 +566,8 @@ class Wr3Terrain(VecTask):
                 self.episode_sums[key][env_ids]) / self.max_episode_length_s
             self.episode_sums[key][env_ids] = 0.
         self.extras["episode"]["terrain_level"] = torch.mean(self.terrain_levels.float())
+        self.extras["episode"]["metrics_terrain_level"] = torch.mean(self.terrain_levels.float())
+        self.extras["episode"]["metrics_reward"] = torch.mean(self.rew_buf.clone().float())
 
     def update_terrain_level(self, env_ids):
         if not self.init_done or not self.curriculum:
