@@ -50,7 +50,7 @@ class Wr3Deployer(PpoPlayerContinuous):
                 self.init_rnn()
                 need_init_rnn = False
 
-            rate = RateLimiter(frequency=60.0, warn=False)
+            rate = RateLimiter(frequency=50.0, warn=False)
             import time
             while True:
                 start = time.time()
