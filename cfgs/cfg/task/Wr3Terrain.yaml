@@ -224,7 +224,8 @@ env:
     actionRateRewardScale: -0.01
     secOrdActionRewardScale: -0.005
     highActionThreshold: 0.05
-    highActionRateRewardScale: -0.1
+    # TODO: too big?
+    highActionRateRewardScale: -0.
     # cosmetics
     hipRewardScale: -0. #25
 
