@@ -5,7 +5,7 @@
         <default class="wr3">
             <geom type="mesh"/>
             <!-- <geom type="mesh" friction="0.1 0.1 0.1"/> -->
-            <joint damping="1" armature="0.1" limited="true"/>
+            <joint damping="0." armature="0.0" limited="true"/>
             <default class="visual">
                 <geom contype="0" conaffinity="0" group="2"/>
             </default>

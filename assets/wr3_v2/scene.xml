@@ -1,7 +1,7 @@
 <mujoco model="wr3">
   <compiler angle="radian"/>
-  <include file="wr3_v2_sphere_knee.xml" />
-  <!-- <include file="wr3_v2.urdf" /> -->
+<!--  <include file="wr3_v2_sphere_knee.xml" />-->
+   <include file="wr3_v2_sphere_knee_has_limit.xml" />
 
 
   <option timestep='0.005' iterations='50' solver='PGS' gravity='0 0 -9.81'>
