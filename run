@@ -3,7 +3,7 @@ cd /storage/liujinxin/code/Quadruped-RL/
 conda activate dog
 nvidia-smi
 
-CUDA_VISIBLE_DEVICES=0 python train.py task.env.control.decimation=4 task.task.randomize=True task.env.terrain.terrainType=simple task.env.numEnvs=16384 max_iterations=20000 headless=True experiment=
+CUDA_VISIBLE_DEVICES=0 python train.py task.env.control.decimation=4 task.task.randomize=True task.env.terrain.terrainType=simple task.env.numEnvs=4096 max_iterations=50000 headless=True wandb_activate=True experiment=
 
 task=Wr3Terrain
 
@@ -12,7 +12,17 @@ task.env.learn.allowKneeContacts
 task.env.learn.kneeCollisionRewardScale
 task.env.learn.orientationRewardScale
 task.env.learn.expectedHeight
+task.env.learn.exceedDofLimitRewardScale
+task.env.learn.actionRateRewardScale: -0.01
+task.env.learn.secOrdActionRewardScale: -0.005
+task.env.learn.poseRewardScale #-0.2
+task.env.learn.highActionThreshold
+task.env.learn.highActionRateRewardScale=0
+
+
 task.env.control.actionScale
+task.env.control.maxTorque
+task.env.urdfAsset.file=wr3_v2/wr3_v2_sphere_knee_has_limit.xml
 
 
 train.params.config.seq_len
@@ -25,5 +35,3 @@ task.env.terrain.terrainType=plane
 checkpoint=runs/deploy_ckpt/Wr3TerrainMLP.pth
 task.env.useDefaultCommands=True
 headless=True
-
-
